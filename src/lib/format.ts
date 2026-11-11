@@ -1,4 +1,5 @@
 import { siteUrl } from "@/config/site";
+import { publicStorageBase } from "@/lib/supabase/shared";
 
 export const eur = (n: number | null | undefined) =>
   n == null ? "–" : n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -25,7 +26,7 @@ export function ps(kw: number | null | undefined) {
 
 export function imageUrl(path: string | null | undefined) {
   if (!path) return null;
-  return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/fahrzeugbilder/${path}`;
+  return `${publicStorageBase}/storage/v1/object/public/fahrzeugbilder/${path}`;
 }
 
 // Netto- und Bruttopreis aus den Inseratsdaten

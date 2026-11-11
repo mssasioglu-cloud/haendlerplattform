@@ -42,12 +42,21 @@ export function LiveChat({ mode, channelId, myId, initial, initialNames }: {
         if (mode === "direct" && sender !== myId) supabase.rpc("mark_conversation_read", { p_conversation: channelId }).then(() => {});
       })
       .subscribe((status) => {
-        if (status === "SUBSCRIBED") { catchUp(); timer = setTimeout(catchUp, 3000); }
+        if (status === "SUBSCRIBED") {
+          clearInterval(poll);
+          poll = undefined;
+          catchUp();
+          timer = setTimeout(catchUp, 3000);
+        } else if (!poll) {
+          // Echtzeit-Verbindung nicht verfügbar: regelmäßig nachladen, damit der Chat trotzdem läuft.
+          poll = setInterval(catchUp, 4000);
+        }
       });
 
     // Lädt die neuesten Nachrichten nach: schließt die Lücke zwischen Seitenaufbau und
     // stehender Echtzeit-Verbindung und holt Verpasstes, wenn der Tab wieder aktiv wird.
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let poll: ReturnType<typeof setInterval> | undefined;
     async function catchUp() {
       const { data } = await supabase.from(table).select("*").eq(fk, channelId)
         .order("created_at", { ascending: false }).limit(30);
@@ -63,6 +72,7 @@ export function LiveChat({ mode, channelId, myId, initial, initialNames }: {
     document.addEventListener("visibilitychange", onVisible);
     return () => {
       clearTimeout(timer);
+      clearInterval(poll);
       document.removeEventListener("visibilitychange", onVisible);
       supabase.removeChannel(channel);
     };
