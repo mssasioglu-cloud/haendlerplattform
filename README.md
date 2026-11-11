@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HändlerDeal – B2B-Fahrzeugbörse für Händler
 
-## Getting Started
+Marktplatz, auf dem geprüfte Gewerbetreibende Fahrzeuge an andere Händler vermitteln.
+Flatrate statt Kosten pro Inserat, die ersten 100 Händler sind dauerhaft kostenlos.
 
-First, run the development server:
+Name, Preis und Anzahl der Gratisplätze stehen in `src/config/site.ts`.
+
+## Funktionen
+
+- Registrierung mit Gewerbenachweis, manuelle Freigabe im Admin-Bereich
+- Inserate nur für freigeschaltete Händler sichtbar (Row Level Security in der Datenbank)
+- Schnell-Formular mit Foto-Upload, optionale Ausstattung, alle Fahrzeugarten
+- Suche mit Filtern, PLZ-Umkreis, Sortierung, „Muss schnell weg“
+- Direktchat und Gruppenchats in Echtzeit, Telefon- und WhatsApp-Button
+- Gebote mit Gegenangebot, Suchgesuche-Board, Merkliste, Suchaufträge mit E-Mail
+- Händlerprofile mit Bewertungen
+- Stripe-Abo ab Händler 101, Kundenportal für Rechnungen und Kündigung
+
+## Technik
+
+Next.js (App Router) · Tailwind CSS · Supabase (Postgres, Auth, Storage, Realtime) · Stripe · Resend
+
+## Lokal starten
+
+Voraussetzung: Node 20+, Docker.
+
+```bash
+npm install
+```
+
+```bash
+npx supabase start
+```
+
+`npx supabase status -o env` zeigt URL und Schlüssel. Diese in `.env.local` eintragen (Vorlage: `.env.example`).
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Ersten Administrator anlegen
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Normal registrieren, Firmendaten ausfüllen, dann einmalig in der Datenbank (Supabase → SQL Editor):
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```sql
+update public.dealers set is_admin = true, status = 'freigegeben'
+where id = (select id from auth.users where email = 'IHRE-EMAIL');
+```
 
-## Learn More
+Danach erscheint der Menüpunkt „Admin“.
 
-To learn more about Next.js, take a look at the following resources:
+## Livegang
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. **Supabase**: Projekt in Region Frankfurt anlegen. `npx supabase link` und `npx supabase db push`
+   spielen Schema und PLZ-Daten ein. Unter Authentication → URL Configuration die eigene Domain als
+   Site URL und `https://DOMAIN/auth/confirm` als Redirect-URL eintragen.
+2. **Stripe**: Produkt „Händler-Flatrate“ mit monatlichem Preis anlegen (Preis-ID → `STRIPE_PRICE_ID`),
+   SEPA-Lastschrift in den Zahlungsmethoden aktivieren, Kundenportal aktivieren. Webhook auf
+   `https://DOMAIN/api/stripe/webhook` mit den Ereignissen `checkout.session.completed` und
+   `customer.subscription.created/updated/deleted` (Signaturgeheimnis → `STRIPE_WEBHOOK_SECRET`).
+3. **Resend**: Domain verifizieren, API-Schlüssel und Absender (`MAIL_FROM`) setzen.
+4. **Vercel**: Repository importieren und alle Variablen aus `.env.example` eintragen.
+5. **Rechtstexte**: AGB, Datenschutz und Impressum sind Entwürfe. Vor dem Start anwaltlich prüfen
+   lassen und die Firmendaten in `src/config/site.ts` ergänzen.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Tests
 
-## Deploy on Vercel
+```bash
+node tests/e2e.mjs
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Der Test läuft im Browser gegen `localhost:3000` und die lokale Supabase-Instanz und legt Testhändler an.
+Für die Stripe-Prüfungen muss die App mit `STRIPE_SECRET_KEY=sk_test_dummy STRIPE_PRICE_ID=price_dummy
+STRIPE_WEBHOOK_SECRET=whsec_testsecret` gestartet sein. Screenshots landen in `tests/screenshots/`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Datenquellen
+
+PLZ-Koordinaten: WZB `plz_geocoord` (Apache-2.0). Ortsnamen: OpenStreetMap-Mitwirkende (ODbL).
