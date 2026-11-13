@@ -368,6 +368,48 @@ try {
   const lic = await fetch(`${api}/storage/v1/object/authenticated/gewerbescheine/${sql(`select license_path from public.dealer_private where dealer_id='${a.id}'`)}`, { headers: { apikey: anon, Authorization: `Bearer ${tb}` } });
   check("Fremder Gewerbenachweis nicht abrufbar", lic.status >= 400);
 
+  console.log("\n14b. Demodaten laden und entfernen");
+  {
+    const before = sql("select count(*) from public.listings");
+    const slotsBefore = sql("select public.founding_slots_left(100)");
+    await admin.page.goto(`${BASE}/admin`);
+    await admin.page.getByRole("button", { name: "Demodaten laden" }).click();
+    await admin.page.getByText(/Demodaten geladen: 6 Händler/).first().waitFor({ timeout: 60000 });
+    check("Demodaten angelegt (16 + 2 Fahrzeuge, 6 Händler)",
+      sql("select count(*) from public.listings") === String(Number(before) + 18)
+      && sql("select count(*) from public.dealer_private where email like '%@demo.haendlerdeal.invalid'") === "6");
+    check("Demo-Fotos hochgeladen", sql("select count(*) from public.listing_images where path like '%/demo-%'") === "10");
+    check("Gründerplätze bleiben unverändert", sql("select public.founding_slots_left(100)") === slotsBefore);
+    for (const [name, url] of [["suche", "/suche"], ["suche-fotos", "/suche?ansicht=karten"], ["nachrichten", "/nachrichten"], ["gebote", "/gebote"],
+      ["gesuche", "/gesuche"], ["chat", "/chat/allgemein"], ["merkliste", "/merkliste"], ["suchauftraege", "/suchauftraege"], ["meine-inserate", "/meine-inserate"]]) {
+      await admin.page.goto(BASE + url);
+      await admin.page.waitForTimeout(400);
+      await shot(admin.page, `demo-${name}`, true);
+    }
+    await admin.page.goto(`${BASE}/suche`);
+    check("Suche zeigt Demo-Fahrzeuge mit Fotos", (await admin.page.locator('table img[src*="/demo-"]').count()) >= 8);
+    await admin.page.goto(`${BASE}/gebote`);
+    check("Gebote: erhalten und abgegeben gefüllt",
+      await admin.page.getByRole("heading", { name: "Erhalten (2)" }).first().isVisible() && await admin.page.getByRole("heading", { name: "Abgegeben (2)" }).first().isVisible());
+    await admin.page.goto(`${BASE}/inserat/${sql("select id from public.listings where make='Skoda' and model='Kodiaq'")}`);
+    await shot(admin.page, "demo-inserat", true);
+    await admin.page.goto(`${BASE}/haendler/${sql("select dealer_id from public.listings where make='Skoda' and model='Kodiaq'")}`);
+    await shot(admin.page, "demo-haendler", true);
+    await admin.page.goto(`${BASE}/admin`);
+    check("Zweites Laden ist gesperrt", await admin.page.getByRole("button", { name: "Demodaten laden" }).isDisabled());
+    await shot(admin.page, "demo-admin");
+    await b.page.goto(`${BASE}/admin`);
+    check("Nicht-Admin erreicht den Demodaten-Knopf nicht", !b.page.url().endsWith("/admin"));
+    await admin.page.getByRole("button", { name: "Demodaten entfernen" }).click();
+    await admin.page.getByText("Demodaten entfernt.").first().waitFor({ timeout: 60000 });
+    check("Demodaten vollständig entfernt, echte Daten unberührt",
+      sql("select count(*) from public.listings") === before
+      && sql("select count(*) from public.dealer_private where email like '%@demo.haendlerdeal.invalid'") === "0"
+      && sql("select count(*) from auth.users where email like '%@demo.haendlerdeal.invalid'") === "0"
+      && sql("select count(*) from storage.objects where name like '%/demo-%'") === "0"
+      && sql("select count(*) from public.saved_searches where name like 'Demo: %'") === "0");
+  }
+
   console.log("\n15. Mobile Ansicht");
   {
     const m = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });

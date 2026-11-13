@@ -6,8 +6,11 @@ import { adminSetDealerStatus, adminResolveReport } from "@/app/actions/misc";
 import { site } from "@/config/site";
 import { dateTimeDe } from "@/lib/format";
 import type { Dealer, DealerPrivate } from "@/lib/types";
+import { DemoPanel } from "./DemoPanel";
 
 export const metadata = { title: "Admin" };
+// Das Laden der Demodaten legt Konten an und lädt Fotos hoch; dafür etwas mehr Laufzeit erlauben.
+export const maxDuration = 60;
 
 const STATUS_CLS: Record<string, string> = {
   ausstehend: "bg-amber-100 text-amber-900", freigegeben: "bg-emerald-100 text-emerald-800",
@@ -40,6 +43,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     if (data?.signedUrl) links.set(d.id, data.signedUrl);
   }));
 
+  const demoDealers = [...priv.values()].filter((p) => p.email.endsWith("@demo.haendlerdeal.invalid")).length;
   const founding = dealers.filter((d) => d.is_founding).length;
   const tabs = [["freigaben", `Freigaben (${pending.length})`], ["haendler", `Alle Händler (${dealers.length})`], ["meldungen", `Meldungen (${reports?.length ?? 0})`]];
 
@@ -59,6 +63,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           </div>
         ))}
       </dl>
+      <DemoPanel demoDealers={demoDealers} />
       <nav className="mb-4 flex gap-2 overflow-x-auto">
         {tabs.map(([k, l]) => (
           <Link key={k} href={`/admin?ansicht=${k}`} className={`btn btn-sm ${ansicht === k ? "btn-primary" : "btn-secondary"}`}>{l}</Link>
