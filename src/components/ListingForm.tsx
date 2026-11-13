@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { saveListing, type ListingInput } from "@/app/actions/listings";
 import { CATEGORIES, FUELS, TRANSMISSIONS, COLORS, MAKES, ALL_MAKES, FEATURES, EXTRA_FIELDS, B2B_NOTICE, DEFECTS, MIN_PHOTOS } from "@/lib/vehicle";
 import { quality, requiredMissing } from "@/lib/quality";
+import { isValidVin, normalizeVin, vinRequired, VIN_PATTERN } from "@/lib/vin";
 import { imageUrl } from "@/lib/format";
 
 const MAX_IMAGES = 20;
@@ -128,6 +129,14 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
           </div>
           {text("model", "Modell *", { required: true, maxLength: 80, placeholder: "z. B. Golf" })}
           {text("variant", "Variante / Ausführung", { maxLength: 120, placeholder: "z. B. 2.0 TDI Highline" })}
+          <div>
+            <label className="label" htmlFor="l-vin">Fahrgestellnummer (FIN){vinRequired(v.category) ? " *" : ""}</label>
+            <input className="input font-mono uppercase tracking-wider" id="l-vin" value={v.vin} maxLength={17} autoCapitalize="characters" spellCheck={false}
+              onChange={(e) => set("vin", normalizeVin(e.target.value))} placeholder="17 Zeichen" required={vinRequired(v.category)} pattern={VIN_PATTERN} />
+            <p className={`mt-1 text-[11px] ${v.vin && !isValidVin(v.vin) ? "font-semibold text-urgent" : "text-muted"}`}>
+              {v.vin && !isValidVin(v.vin) ? `${v.vin.length} von 17 Zeichen, ohne I, O und Q` : "Nur für angemeldete Händler sichtbar. Erspart Rückfragen zu Historie und Ausstattung."}
+            </p>
+          </div>
           {text("first_registration", "Erstzulassung *", { type: "month", required: true })}
           {text("mileage", "Kilometerstand *", { inputMode: "numeric", placeholder: "km", required: true })}
           {select("fuel", "Kraftstoff", FUELS)}
@@ -224,7 +233,6 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
             {select("color", "Farbe", COLORS)}
             {text("hu_until", "HU bis", { type: "month" })}
             {text("owners", "Anzahl Vorbesitzer", { inputMode: "numeric" })}
-            {text("vin", "FIN (nur für Händler sichtbar)", { maxLength: 17 })}
             {(EXTRA_FIELDS[v.category] ?? []).map((f) => (
               <div key={f.key}>
                 <label className="label" htmlFor={`x-${f.key}`}>{f.label}{f.unit ? ` (${f.unit})` : ""}</label>

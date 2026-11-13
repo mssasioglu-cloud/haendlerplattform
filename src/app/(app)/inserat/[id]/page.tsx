@@ -6,6 +6,7 @@ import { Gallery } from "@/components/Gallery";
 import { MessageForm, OfferForm, ReportForm } from "@/components/ContactForms";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Stars } from "@/components/Stars";
+import { VinTools } from "@/components/VinTools";
 import { setListingStatus, toggleUrgent, deleteListing, extendListing } from "@/app/actions/listings";
 import { eur, km, monthYear, ps, prices, imageUrl, whatsappLink, dateDe, absoluteUrl, standzeit, priceDrop, daysLeft } from "@/lib/format";
 import { VAT_LABEL, B2B_NOTICE, EXTRA_FIELDS, categoryLabel } from "@/lib/vehicle";
@@ -59,7 +60,6 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
     ["Unfallfrei", yesNo(l.accident_free)],
     ["Scheckheftgepflegt", yesNo(l.service_history)],
     ["Fahrbereit", l.roadworthy ? "Ja" : "Nein"],
-    ["FIN", l.vin],
     ...(EXTRA_FIELDS[l.category] ?? []).map((f): [string, string | null] =>
       [f.label.split(" (")[0], l.extra?.[f.key] ? `${l.extra[f.key]}${f.unit ? " " + f.unit : ""}` : null]),
   ];
@@ -156,6 +156,8 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
             {!mine && <div className="mt-2"><FavoriteButton listingId={l.id} initial={!!fav} withLabel /></div>}
           </div>
         </div>
+
+        {l.vin && <VinTools vin={l.vin} />}
 
         {d && (
           <div className="card p-5">

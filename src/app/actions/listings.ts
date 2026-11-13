@@ -8,6 +8,7 @@ import { sendMail } from "@/lib/mail";
 import { absoluteUrl, eur } from "@/lib/format";
 import { CATEGORIES, FUELS, TRANSMISSIONS, FEATURES, DEFECTS } from "@/lib/vehicle";
 import { quality, requiredMissing } from "@/lib/quality";
+import { isValidVin, normalizeVin } from "@/lib/vin";
 import type { ActionState } from "@/lib/types";
 
 export type ListingInput = {
@@ -44,6 +45,16 @@ export async function saveListing(input: ListingInput, imagePaths: string[], id?
   const q = { ...input, defects, no_known_defects: !!input.no_known_defects && defects.length === 0, photos: paths.length };
   const missing = requiredMissing(q);
   if (missing.length) return { error: `Es fehlt noch: ${missing.join(", ")}.` };
+  const vin = normalizeVin(input.vin ?? "");
+  if (vin && !isValidVin(vin)) return { error: "Die Fahrgestellnummer muss 17 Zeichen haben (Buchstaben und Ziffern, ohne I, O und Q)." };
+  if (vin) {
+    // Dieselbe FIN darf nicht zweimal gleichzeitig angeboten werden (auch nicht von einem anderen Händler)
+    let dup = createAdminClient().from("listings").select("id", { count: "exact", head: true })
+      .eq("vin", vin).in("status", ["aktiv", "reserviert"]).gt("expires_at", new Date().toISOString());
+    if (id) dup = dup.neq("id", id);
+    const { count } = await dup;
+    if ((count ?? 0) > 0) return { error: "Ein Fahrzeug mit dieser Fahrgestellnummer ist bereits inseriert." };
+  }
   const row = {
     category: input.category,
     make: input.make.trim().slice(0, 60),
@@ -60,7 +71,7 @@ export async function saveListing(input: ListingInput, imagePaths: string[], id?
     accident_free: triState(input.accident_free),
     service_history: triState(input.service_history),
     roadworthy: input.roadworthy,
-    vin: input.vin.trim().toUpperCase().slice(0, 17) || null,
+    vin: vin || null,
     damage_notes: input.damage_notes.trim().slice(0, 4000),
     defects,
     no_known_defects: q.no_known_defects,

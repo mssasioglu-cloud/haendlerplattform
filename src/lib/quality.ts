@@ -1,9 +1,11 @@
+import { isValidVin, vinRequired } from "@/lib/vin";
+
 // Vollständigkeit eines Inserats. Wird im Formular live angezeigt und beim Speichern
 // als quality_score abgelegt; vollständige Inserate stehen in der Suche weiter oben.
 export type QualityInput = {
   photos: number; mileage: string; first_registration: string; fuel: string; transmission: string; power_kw: string;
   accident_free: string; defects: string[]; no_known_defects: boolean; color: string; hu_until: string; owners: string;
-  features: string[]; description: string; damage_notes: string;
+  features: string[]; description: string; damage_notes: string; vin: string; category: string;
 };
 
 export const COMPLETE_FROM = 80;
@@ -35,6 +37,7 @@ export function quality(v: QualityInput) {
 export function requiredMissing(v: QualityInput) {
   const m: string[] = [];
   if (v.photos < 3) m.push("mindestens 3 Fotos");
+  if (vinRequired(v.category) && !isValidVin(v.vin)) m.push("gültige Fahrgestellnummer (17 Zeichen)");
   if (v.mileage.trim() === "") m.push("Kilometerstand");
   if (v.first_registration.trim() === "") m.push("Erstzulassung");
   if (v.accident_free !== "ja" && v.accident_free !== "nein") m.push("Unfallfrei ja oder nein");

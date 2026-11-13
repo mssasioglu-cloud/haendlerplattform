@@ -66,11 +66,15 @@ async function register(name, company, zip, { mobile = false, invite = null } = 
   return { ctx, page, email, id, company };
 }
 
+let vinCounter = 0;
+const nextVin = () => `WVWZZZ1KZ${String(run % 100000).padStart(5, "0")}${String(++vinCounter).padStart(3, "0")}`;
+
 async function createListing(page, o) {
   await page.goto(`${BASE}/inserieren`);
   await page.fill("#l-make", o.make);
   await page.fill("#l-model", o.model);
   await page.fill("#l-variant", o.variant ?? "");
+  await page.fill("#l-vin", o.vin ?? nextVin());
   await page.fill("#l-first_registration", o.ez ?? "2018-05");
   await page.fill("#l-mileage", String(o.km ?? 98000));
   await page.selectOption("#l-fuel", o.fuel ?? "Diesel");
@@ -261,6 +265,9 @@ try {
     await a.page.goto(`${BASE}/inserieren`);
     await a.page.fill("#l-make", "Test");
     await a.page.fill("#l-model", "Pflicht");
+    await a.page.fill("#l-vin", "wvwzzz1kz0000");
+    check("Zu kurze FIN wird im Formular markiert", await a.page.getByText("13 von 17 Zeichen").first().isVisible());
+    await a.page.fill("#l-vin", nextVin());
     await a.page.fill("#l-first_registration", "2020-01");
     await a.page.fill("#l-mileage", "50000");
     await a.page.fill("#l-price", "5000");
@@ -275,7 +282,18 @@ try {
     await a.page.selectOption("#l-accident_free", "ja");
     const after = await a.page.getByTestId("quality-score").innerText();
     check("Vollständigkeitsanzeige steigt mit den Angaben", parseInt(after) > parseInt(before), `${before} -> ${after}`);
+    const vinL1 = sql(`select vin from public.listings where id='${l1}'`);
+    await a.page.setInputFiles('input[type="file"]', [photo3]);
+    await a.page.waitForFunction(() => document.querySelectorAll('img[alt^="Foto "]').length === 3);
+    await a.page.fill("#l-vin", vinL1);
+    await a.page.click('button:has-text("Inserat veröffentlichen")');
+    check("Dieselbe FIN kann nicht zweimal inseriert werden", await a.page.getByText("bereits inseriert").first().waitFor({ timeout: 10000 }).then(() => true, () => false));
     check("Kein Pflicht-Inserat gespeichert", sql("select count(*) from public.listings where make='Test'") === "0");
+    await b.page.goto(`${BASE}/inserat/${l1}`);
+    check("Käufer sieht die FIN mit Verweis zu carVertical",
+      (await b.page.getByTestId("vin").innerText()) === vinL1
+      && (await b.page.getByRole("link", { name: /carVertical/ }).getAttribute("href")).endsWith(`vin=${vinL1}`));
+    await shot(b.page, "25-inserat-fin", true);
     await a.page.goto(`${BASE}/inserat/${l1}`);
     check("Mängel-Checkliste auf dem Inserat sichtbar", await a.page.getByText("Lack / Kratzer").first().isVisible());
     check("Qualitätswert gespeichert", Number(sql(`select quality_score from public.listings where id='${l1}'`)) >= 60);
@@ -335,7 +353,8 @@ try {
     const html = await tp.content();
     check("Vorschauseite ohne Login erreichbar", res.status() === 200 && await tp.getByRole("heading", { name: /Volkswagen Golf/ }).first().isVisible());
     check("Vorschauseite verrät weder Preis noch Händler (auch nicht im Quelltext)",
-      !html.includes("11.900") && !html.includes("11900") && !html.includes("Autohaus Alpha") && !html.includes("0221 1234567"));
+      !html.includes("11.900") && !html.includes("11900") && !html.includes("Autohaus Alpha") && !html.includes("0221 1234567")
+      && !html.includes(sql(`select vin from public.listings where id='${l1}'`)));
     check("Vorschauseite hat Vorschaubild für WhatsApp und ist für Suchmaschinen gesperrt",
       (await tp.locator('meta[property="og:image"]').count()) === 1 && (await tp.locator('meta[name="robots"]').getAttribute("content")).includes("noindex"));
     await shot(tp, "23-vorschauseite", true);

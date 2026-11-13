@@ -9,7 +9,8 @@ import type { ActionState } from "@/lib/types";
 // Beispieldaten, damit jeder Reiter zeigt, wie die Plattform im Betrieb aussieht.
 // Demo-Händler sind an ihrer E-Mail-Domain erkennbar und lassen sich mit einem Klick wieder entfernen.
 const DEMO_DOMAIN = "@demo.haendlerdeal.invalid";
-const DEMO_VIN = "DEMO";
+const DEMO_VIN = "ZZDEM"; // gültige FIN-Zeichen, damit sich Demo-Inserate bearbeiten lassen
+const DEMO_VIN_OLD = "DEMO"; // Kennzeichen früherer Demodaten, wird beim Entfernen mit erfasst
 const DEMO_SEARCH = "Demo: ";
 const NOTE = "Beispieldaten zur Vorführung der Plattform. Dieses Fahrzeug steht nicht wirklich zum Verkauf.";
 
@@ -143,11 +144,11 @@ export async function loadDemoData(_: ActionState): Promise<ActionState> {
       zip, city: "", b2b_confirmed: true, vin, created_at: daysAgo(l.age, 2), roadworthy: true,
     });
     const { data: created, error: lErr } = await db.from("listings")
-      .insert(LISTINGS.map((l) => row(l, ids[l.d], DEALERS[l.d].zip, null))).select("id, make, model, dealer_id");
+      .insert(LISTINGS.map((l, i) => row(l, ids[l.d], DEALERS[l.d].zip, `XDEM${String(i + 1).padStart(13, "0")}`))).select("id, make, model, dealer_id");
     if (lErr || !created) throw new Error(lErr?.message);
     const byName = (make: string, model: string) => created.find((c) => c.make === make && c.model === model)!;
     const { data: own, error: oErr } = await db.from("listings")
-      .insert(OWN_LISTINGS.map((l, i) => row(l, me, s.dealer.zip, `${DEMO_VIN}${String(i + 1).padStart(13, "0")}`))).select("id, make, model");
+      .insert(OWN_LISTINGS.map((l, i) => row(l, me, s.dealer.zip, `${DEMO_VIN}${String(i + 1).padStart(12, "0")}`))).select("id, make, model");
     if (oErr || !own) throw new Error(oErr?.message);
 
     // Drei Fahrzeuge mit Preissenkung (der Datenbank-Trigger merkt sich den alten Preis)
@@ -248,7 +249,7 @@ export async function loadDemoData(_: ActionState): Promise<ActionState> {
 // Entfernt alles, was loadDemoData angelegt hat. Echte Händler und ihre Daten bleiben unberührt.
 async function purge(db: ReturnType<typeof createAdminClient>) {
   const demoIds = await findDemoDealerIds(db);
-  const { data: demoOwn } = await db.from("listings").select("id").like("vin", `${DEMO_VIN}%`);
+  const { data: demoOwn } = await db.from("listings").select("id").or(`vin.like.${DEMO_VIN}%,vin.like.${DEMO_VIN_OLD}%`);
   const { data: demoListings } = demoIds.length
     ? await db.from("listings").select("id").in("dealer_id", demoIds)
     : { data: [] as { id: string }[] };
