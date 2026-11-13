@@ -290,9 +290,9 @@ try {
     check("Dieselbe FIN kann nicht zweimal inseriert werden", await a.page.getByText("bereits inseriert").first().waitFor({ timeout: 10000 }).then(() => true, () => false));
     check("Kein Pflicht-Inserat gespeichert", sql("select count(*) from public.listings where make='Test'") === "0");
     await b.page.goto(`${BASE}/inserat/${l1}`);
-    check("Käufer sieht die FIN mit Verweis zu carVertical",
-      (await b.page.getByTestId("vin").innerText()) === vinL1
-      && (await b.page.getByRole("link", { name: /carVertical/ }).getAttribute("href")).endsWith(`vin=${vinL1}`));
+    await b.page.getByRole("button", { name: "FIN kopieren" }).click();
+    check("Käufer sieht die FIN-Box mit Kopieren-Knopf",
+      (await b.page.getByTestId("vin").innerText()) === vinL1 && (await b.page.locator('a[href*="carvertical"]').count()) === 0);
     await shot(b.page, "25-inserat-fin", true);
     await a.page.goto(`${BASE}/inserat/${l1}`);
     check("Mängel-Checkliste auf dem Inserat sichtbar", await a.page.getByText("Lack / Kratzer").first().isVisible());
