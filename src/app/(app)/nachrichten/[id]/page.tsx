@@ -21,7 +21,7 @@ export default async function Unterhaltung({ params }: { params: Promise<{ id: s
 
   return (
     <div className="mx-auto max-w-3xl">
-      <Link href="/nachrichten" className="text-sm text-brand-600">← Alle Nachrichten</Link>
+      <Link href="/nachrichten" className="text-sm link">← Alle Nachrichten</Link>
       <div className="mb-4 mt-2 flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="h1">
@@ -29,8 +29,8 @@ export default async function Unterhaltung({ params }: { params: Promise<{ id: s
           </h1>
           <p className="text-sm text-muted">
             {c.subject}
-            {c.listing_id && <> · <Link href={`/inserat/${c.listing_id}`} className="font-semibold text-brand-600">Inserat ansehen</Link></>}
-            {c.wanted_id && <> · <Link href="/gesuche" className="font-semibold text-brand-600">Zu den Gesuchen</Link></>}
+            {c.listing_id && <> · <Link href={`/inserat/${c.listing_id}`} className="link">Inserat ansehen</Link></>}
+            {c.wanted_id && <> · <Link href="/gesuche" className="link">Zu den Gesuchen</Link></>}
           </p>
         </div>
         {other?.phone && <a href={`tel:${other.phone.replace(/[^\d+]/g, "")}`} className="btn btn-secondary">Anrufen</a>}

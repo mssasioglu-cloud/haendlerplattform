@@ -54,8 +54,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           ["Aktive Inserate", listingCount ?? 0],
         ].map(([k, v]) => (
           <div key={k} className="card p-4">
-            <dt className="text-xs font-semibold text-muted">{k}</dt>
-            <dd className="mt-1 text-2xl font-bold tabular-nums">{v}</dd>
+            <dt className="eyebrow">{k}</dt>
+            <dd className="price mt-1 text-3xl">{v}</dd>
           </div>
         ))}
       </dl>
@@ -72,7 +72,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             const car = r.listings as unknown as { make: string; model: string } | null;
             return (
               <div key={r.id} className="card p-4">
-                <Link href={`/inserat/${r.listing_id}`} className="font-semibold text-brand-700">{car ? `${car.make} ${car.model}` : "Inserat"}</Link>
+                <Link href={`/inserat/${r.listing_id}`} className="link">{car ? `${car.make} ${car.model}` : "Inserat"}</Link>
                 <p className="mt-1 text-sm">{r.reason}</p>
                 <p className="mt-1 text-xs text-muted">{dateTimeDe(r.created_at)}</p>
                 <div className="mt-3 flex gap-2">

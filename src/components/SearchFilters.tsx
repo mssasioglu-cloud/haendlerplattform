@@ -3,17 +3,18 @@ import { CATEGORIES, FUELS, TRANSMISSIONS, ALL_MAKES } from "@/lib/vehicle";
 import type { Filters } from "@/lib/filters";
 
 // Filterformular ohne JavaScript: schickt die Werte als URL-Parameter an /suche.
-export function SearchFilters({ filters: f, sort }: { filters: Filters; sort: string }) {
+export function SearchFilters({ filters: f, sort, view = "" }: { filters: Filters; sort: string; view?: string }) {
   const active = Object.keys(f).length;
   return (
-    <div className="card">
+    <div className="card overflow-hidden">
       <input type="checkbox" id="filter-toggle" className="peer sr-only" />
-      <label htmlFor="filter-toggle" className="flex cursor-pointer items-center justify-between px-4 py-3 font-semibold peer-focus-visible:outline-2 lg:cursor-default">
-        <span>Filter {active > 0 && <span className="badge ml-1 bg-brand-600 text-white">{active}</span>}</span>
-        <span className="text-xs font-medium text-brand-600 lg:hidden">anzeigen / ausblenden</span>
+      <label htmlFor="filter-toggle" className="flex cursor-pointer items-center justify-between rounded-t-lg bg-brand-800 px-4 py-3 font-display text-lg font-semibold uppercase tracking-wider text-white peer-focus-visible:outline-2 lg:cursor-default">
+        <span>Filter {active > 0 && <span className="badge ml-1 bg-accent text-ink">{active}</span>}</span>
+        <span className="font-sans text-xs font-medium normal-case tracking-normal text-accent lg:hidden">anzeigen / ausblenden</span>
       </label>
       <form action="/suche" className="hidden gap-3 border-t border-line p-4 peer-checked:grid lg:grid">
         <input type="hidden" name="sort" value={sort} />
+        {view && <input type="hidden" name="ansicht" value={view} />}
         <div>
           <label className="label" htmlFor="f-q">Suchbegriff</label>
           <input className="input" id="f-q" name="q" defaultValue={f.q} placeholder="z. B. GTI, Sprinter" />
@@ -102,7 +103,7 @@ export function SearchFilters({ filters: f, sort }: { filters: Filters; sort: st
           Nur „Muss schnell weg“
         </label>
         <div className="flex gap-2">
-          <button className="btn btn-primary flex-1">Suchen</button>
+          <button className="btn btn-dark flex-1">Suchen</button>
           <Link href="/suche" className="btn btn-secondary">Zurücksetzen</Link>
         </div>
       </form>

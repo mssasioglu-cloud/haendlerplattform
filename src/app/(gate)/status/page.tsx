@@ -29,7 +29,7 @@ export default async function Status() {
       <h1 className="h1">{s.dealer.status === "abgelehnt" ? "Freischaltung abgelehnt" : "Account gesperrt"}</h1>
       {s.dealer.rejection_reason && <p className="notice notice-error mt-3">Begründung: {s.dealer.rejection_reason}</p>}
       <p className="mt-3 text-sm text-muted">
-        Bei Fragen erreichen Sie uns unter <a className="font-semibold text-brand-600" href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
+        Bei Fragen erreichen Sie uns unter <a className="link" href={`mailto:${site.supportEmail}`}>{site.supportEmail}</a>.
       </p>
     </div>
   );

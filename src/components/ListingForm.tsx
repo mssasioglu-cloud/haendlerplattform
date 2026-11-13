@@ -104,7 +104,7 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
       {error && <p className="notice notice-error" role="alert">{error}</p>}
 
       <section className="card p-5">
-        <h2 className="mb-4 font-semibold">Fahrzeug</h2>
+        <h2 className="h2 mb-4">Fahrzeug</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <label className="label" htmlFor="l-category">Fahrzeugart</label>
@@ -128,7 +128,7 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-4 font-semibold">Preis und Standort</h2>
+        <h2 className="h2 mb-4">Preis und Standort</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {text("price", "Händlerpreis (€) *", { inputMode: "numeric", required: true })}
           {select("vat_type", "Besteuerung *", [["differenz", "Differenzbesteuert (§ 25a UStG)"], ["ausweisbar", "MwSt. ausweisbar"]], "Bitte wählen")}
@@ -150,7 +150,7 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-1 font-semibold">Fotos</h2>
+        <h2 className="h2 mb-1">Fotos</h2>
         <p className="mb-4 text-xs text-muted">Bis zu {MAX_IMAGES} Fotos. Das erste Foto ist das Titelbild.</p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {images.map((p, i) => (
@@ -165,7 +165,7 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
             </div>
           ))}
           {images.length < MAX_IMAGES && (
-            <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-brand-200 bg-brand-50 text-center text-xs font-semibold text-brand-700 hover:bg-brand-100">
+            <label className="flex aspect-[4/3] cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-brand-200 bg-brand-50 text-center text-xs font-semibold text-ink hover:border-ink hover:bg-accent-50">
               {uploading > 0 ? `Lädt … (${uploading})` : "+ Fotos hinzufügen"}
               <input type="file" accept="image/*" multiple className="sr-only" onChange={(e) => { onFiles(e.target.files); e.target.value = ""; }} />
             </label>
@@ -174,7 +174,7 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
       </section>
 
       <section className="card p-5">
-        <h2 className="mb-4 font-semibold">Zustand</h2>
+        <h2 className="h2 mb-4">Zustand</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {select("accident_free", "Unfallfrei", [["ja", "Ja"], ["nein", "Nein"]], "Keine Angabe")}
           {select("service_history", "Scheckheftgepflegt", [["ja", "Ja"], ["nein", "Nein"]], "Keine Angabe")}

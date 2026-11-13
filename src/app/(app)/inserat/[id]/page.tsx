@@ -7,7 +7,7 @@ import { MessageForm, OfferForm, ReportForm } from "@/components/ContactForms";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Stars } from "@/components/Stars";
 import { setListingStatus, toggleUrgent, deleteListing } from "@/app/actions/listings";
-import { eur, km, monthYear, ps, prices, imageUrl, whatsappLink, dateDe, absoluteUrl } from "@/lib/format";
+import { eur, km, monthYear, ps, prices, imageUrl, whatsappLink, dateDe, absoluteUrl, standzeit } from "@/lib/format";
 import { VAT_LABEL, B2B_NOTICE, EXTRA_FIELDS, categoryLabel } from "@/lib/vehicle";
 import type { Listing, Dealer } from "@/lib/types";
 
@@ -64,46 +64,60 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
       <div className="min-w-0 space-y-5">
         <div>
-          <Link href="/suche" className="text-sm text-brand-600">← Zur Suche</Link>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <Link href="/suche" className="text-sm link">← Zur Suche</Link>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="eyebrow">{categoryLabel(l.category)} · {l.zip} {l.city}</span>
             {l.urgent && <span className="badge bg-urgent text-white">Muss schnell weg</span>}
             {l.status !== "aktiv" && <span className="badge bg-ink text-white capitalize">{l.status}</span>}
           </div>
-          <h1 className="h1 mt-1">{title}</h1>
-          <p className="text-sm text-muted">{l.zip} {l.city} · eingestellt am {dateDe(l.created_at)}</p>
+          <h1 className="mt-1 font-display text-4xl font-extrabold uppercase leading-none tracking-wide sm:text-5xl">{title}</h1>
         </div>
+
+        <dl className="grid grid-cols-2 overflow-hidden rounded-lg bg-brand-800 text-white sm:grid-cols-4">
+          {([
+            ["Kilometer", l.mileage != null ? km(l.mileage) : "–"],
+            ["Erstzulassung", l.first_registration ? monthYear(l.first_registration) : "–"],
+            ["Leistung", l.power_kw != null ? `${l.power_kw} kW` : "–"],
+            ["Online", standzeit(l.created_at)],
+          ] as const).map(([k, v]) => (
+            <div key={k} className="border-b border-r border-white/10 px-4 py-3 sm:border-b-0">
+              <dt className="eyebrow text-brand-200">{k}</dt>
+              <dd className="price mt-1 text-2xl">{v}</dd>
+            </div>
+          ))}
+        </dl>
 
         <Gallery images={(imgs ?? []).map((i) => imageUrl(i.path)!)} alt={title} />
 
         <section className="card p-5">
-          <h2 className="mb-3 font-semibold">Fahrzeugdaten</h2>
+          <h2 className="h2 mb-3">Fahrzeugdaten</h2>
           <dl className="grid grid-cols-1 gap-x-8 text-sm sm:grid-cols-2">
             {facts.filter(([, v]) => v).map(([k, v]) => (
               <div key={k} className="flex justify-between gap-4 border-b border-line py-2">
                 <dt className="text-muted">{k}</dt>
-                <dd className="text-right font-medium">{v}</dd>
+                <dd className="num text-right font-medium">{v}</dd>
               </div>
             ))}
           </dl>
         </section>
 
         <section className="card p-5">
-          <h2 className="mb-2 font-semibold">Mängel und Schäden</h2>
+          <h2 className="h2 mb-2">Mängel und Schäden</h2>
           <p className="whitespace-pre-line text-sm">{l.damage_notes || "Vom Händler wurden keine Mängel angegeben."}</p>
         </section>
 
         {l.features.length > 0 && (
           <section className="card p-5">
-            <h2 className="mb-3 font-semibold">Ausstattung</h2>
+            <h2 className="h2 mb-3">Ausstattung</h2>
             <ul className="grid grid-cols-2 gap-x-6 gap-y-1.5 text-sm sm:grid-cols-3">
-              {l.features.map((f) => <li key={f} className="flex gap-2"><span className="text-brand-600" aria-hidden>✓</span>{f}</li>)}
+              {l.features.map((f) => <li key={f} className="flex gap-2"><span className="font-bold text-accent-600" aria-hidden>✓</span>{f}</li>)}
             </ul>
           </section>
         )}
 
         {l.description && (
           <section className="card p-5">
-            <h2 className="mb-2 font-semibold">Beschreibung</h2>
+            <h2 className="h2 mb-2">Beschreibung</h2>
             <p className="whitespace-pre-line text-sm">{l.description}</p>
           </section>
         )}
@@ -112,18 +126,25 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
       </div>
 
       <aside className="space-y-4 lg:sticky lg:top-28 lg:self-start">
-        <div className="card p-5">
-          <p className="text-3xl font-bold tabular-nums">{eur(p.gross)}</p>
-          {p.net != null
-            ? <p className="text-sm text-muted">{eur(p.net)} netto · {VAT_LABEL.ausweisbar}</p>
-            : <p className="text-sm text-muted">{VAT_LABEL.differenz}, MwSt. nicht ausweisbar</p>}
-          {!mine && <div className="mt-3"><FavoriteButton listingId={l.id} initial={!!fav} withLabel /></div>}
+        <div className="card overflow-hidden">
+          <div className="bg-brand-800 px-5 py-4 text-white">
+            <p className="eyebrow text-brand-200">Händlerpreis</p>
+            <p className="price mt-1 text-5xl text-accent">{eur(p.gross)}</p>
+            {p.net != null
+              ? <p className="mt-1.5 text-sm text-brand-200">{eur(p.net)} netto · {VAT_LABEL.ausweisbar}</p>
+              : <p className="mt-1.5 text-sm text-brand-200">{VAT_LABEL.differenz}, MwSt. nicht ausweisbar</p>}
+          </div>
+          <div className="hatch h-1.5" aria-hidden />
+          <div className="px-5 py-3 text-xs text-muted">
+            Eingestellt am {dateDe(l.created_at)}
+            {!mine && <div className="mt-2"><FavoriteButton listingId={l.id} initial={!!fav} withLabel /></div>}
+          </div>
         </div>
 
         {d && (
           <div className="card p-5">
-            <p className="text-xs font-semibold text-muted">Anbieter</p>
-            <Link href={`/haendler/${d.id}`} className="font-semibold text-brand-700 hover:underline">{d.company_name}</Link>
+            <p className="eyebrow mb-1">Anbieter</p>
+            <Link href={`/haendler/${d.id}`} className="link">{d.company_name}</Link>
             <p className="text-sm text-muted">{d.contact_name} · {d.zip} {d.city}</p>
             <div className="mt-1"><Stars value={rating} count={reviews?.length ?? 0} /></div>
             {!mine && (

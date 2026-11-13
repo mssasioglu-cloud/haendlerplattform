@@ -70,7 +70,7 @@ export default async function Gesuche({ searchParams }: { searchParams: Promise<
               </p>
               {w.description && <p className="mt-2 whitespace-pre-line text-sm">{w.description}</p>}
               <p className="mt-2 text-xs text-muted">
-                <Link href={`/haendler/${w.dealer_id}`} className="font-semibold text-brand-700">{d?.company_name ?? "Händler"}</Link>
+                <Link href={`/haendler/${w.dealer_id}`} className="link">{d?.company_name ?? "Händler"}</Link>
                 {d?.city && ` · ${d.city}`} · {dateDe(w.created_at)}
               </p>
               <div className="mt-3 border-t border-line pt-3">

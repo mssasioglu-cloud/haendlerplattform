@@ -18,7 +18,7 @@ export default async function Suchauftraege() {
       <p className="mb-5 text-sm text-muted">Sie erhalten eine E-Mail an {s.email}, sobald ein passendes Fahrzeug eingestellt wird.</p>
       {rows.length === 0 && (
         <p className="card p-8 text-center text-sm text-muted">
-          Noch keine Suchaufträge. Setzen Sie in der <Link href="/suche" className="font-semibold text-brand-600">Suche</Link> Filter und wählen Sie „Suche speichern“.
+          Noch keine Suchaufträge. Setzen Sie in der <Link href="/suche" className="link">Suche</Link> Filter und wählen Sie „Suche speichern“.
         </p>
       )}
       <ul className="space-y-3">

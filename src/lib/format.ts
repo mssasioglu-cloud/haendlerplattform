@@ -46,3 +46,12 @@ export function whatsappLink(numberRaw: string, text: string) {
 }
 
 export const absoluteUrl = (path: string) => `${siteUrl.replace(/\/$/, "")}${path}`;
+
+// Standzeit eines Inserats in Tagen seit dem Einstellen
+export function standDays(createdAt: string) {
+  return Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 86400000));
+}
+export function standzeit(createdAt: string) {
+  const d = standDays(createdAt);
+  return d === 0 ? "heute neu" : d === 1 ? "seit 1 Tag" : `seit ${d} Tagen`;
+}

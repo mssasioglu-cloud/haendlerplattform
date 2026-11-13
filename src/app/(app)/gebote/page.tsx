@@ -54,19 +54,19 @@ export default async function Gebote() {
           <div key={o.id} className="card p-4">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
-                <Link href={`/inserat/${o.listing_id}`} className="font-semibold hover:text-brand-600">
+                <Link href={`/inserat/${o.listing_id}`} className="font-semibold hover:underline">
                   {o.listings ? `${o.listings.make} ${o.listings.model}` : "Inserat"}
                 </Link>
                 <p className="text-sm text-muted">
                   {incoming ? "von" : "an"}{" "}
-                  <Link href={`/haendler/${incoming ? o.buyer_id : o.seller_id}`} className="font-medium text-brand-700">{other?.company_name ?? "Händler"}</Link>
+                  <Link href={`/haendler/${incoming ? o.buyer_id : o.seller_id}`} className="link">{other?.company_name ?? "Händler"}</Link>
                   {" · "}{dateTimeDe(o.created_at)}
                   {o.listings && ` · Inseratspreis ${eur(o.listings.price_gross)}`}
                 </p>
               </div>
               <span className={`badge ${cls}`}>{label}</span>
             </div>
-            <p className="mt-2 text-xl font-bold tabular-nums">
+            <p className="price mt-2 text-3xl">
               {eur(o.amount)}
               {o.counter_amount != null && <span className="ml-2 text-base font-semibold text-brand-700">→ Gegenangebot {eur(o.counter_amount)}</span>}
             </p>
@@ -110,11 +110,11 @@ export default async function Gebote() {
       <h1 className="h1 mb-5">Gebote</h1>
       <div className="grid gap-6 lg:grid-cols-2">
         <section>
-          <h2 className="mb-3 font-semibold">Erhalten ({received.length})</h2>
+          <h2 className="h2 mb-3">Erhalten ({received.length})</h2>
           {list(received, true)}
         </section>
         <section>
-          <h2 className="mb-3 font-semibold">Abgegeben ({sent.length})</h2>
+          <h2 className="h2 mb-3">Abgegeben ({sent.length})</h2>
           {list(sent, false)}
         </section>
       </div>

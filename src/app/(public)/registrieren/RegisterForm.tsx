@@ -25,8 +25,8 @@ export function RegisterForm() {
       <label className="flex gap-2 text-sm">
         <input type="checkbox" name="agb" className="mt-0.5" required />
         <span>
-          Ich akzeptiere die <Link href="/agb" target="_blank" className="font-semibold text-brand-600">AGB</Link> und habe die{" "}
-          <Link href="/datenschutz" target="_blank" className="font-semibold text-brand-600">Datenschutzerklärung</Link> gelesen.
+          Ich akzeptiere die <Link href="/agb" target="_blank" className="link">AGB</Link> und habe die{" "}
+          <Link href="/datenschutz" target="_blank" className="link">Datenschutzerklärung</Link> gelesen.
         </span>
       </label>
       <SubmitButton className="btn btn-primary w-full">Weiter</SubmitButton>

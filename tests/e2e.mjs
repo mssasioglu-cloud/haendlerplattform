@@ -107,10 +107,15 @@ try {
     const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
     const p = await ctx.newPage();
     await p.goto(BASE);
-    check("Startseite zeigt freie Gründerplätze", await p.getByText("Gratisplätzen sind noch frei").first().isVisible());
+    check("Startseite zeigt freie Gründerplätze", await p.getByText("Gründerplätze frei").first().isVisible());
     await shot(p, "01-startseite", true);
     await p.goto(`${BASE}/preise`);
     await shot(p, "02-preise");
+    await p.setViewportSize({ width: 390, height: 844 });
+    await p.goto(BASE);
+    check("Startseite mobil ohne horizontales Scrollen", !(await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
+    await shot(p, "01b-startseite-mobil", true);
+    await p.setViewportSize({ width: 1280, height: 900 });
     await p.goto(`${BASE}/suche`);
     check("Suche ohne Login leitet zum Login", p.url().endsWith("/login"));
     for (const u of ["/agb", "/datenschutz", "/impressum"]) {
@@ -163,11 +168,19 @@ try {
   await shot(b.page, "06-suche", true);
   await b.page.goto(`${BASE}/suche?marke=Volkswagen&plz=40213&umkreis=50&sort=naehe`);
   check("Filter Marke + 50 km um Düsseldorf findet den Golf in Köln", await b.page.getByRole("heading", { name: "1 Fahrzeug" }).first().isVisible()
-    && await b.page.getByText(/km entfernt/).first().isVisible());
+    && await b.page.locator("text=/km entfernt/ >> visible=true").first().isVisible());
   await b.page.goto(`${BASE}/suche?plz=80331&umkreis=50`);
   check("50 km um München findet nichts", await b.page.getByRole("heading", { name: "0 Fahrzeuge" }).first().isVisible());
   await b.page.goto(`${BASE}/suche?preis_bis=12000&mwst=differenz&dringend=1`);
   check("Filter Preis/Besteuerung/dringend", await b.page.getByRole("heading", { name: "1 Fahrzeug" }).first().isVisible());
+
+  await b.page.goto(`${BASE}/suche`);
+  check("Suche zeigt standardmäßig die Tabelle mit Standzeit",
+    await b.page.locator("table").first().isVisible() && await b.page.getByText("heute neu").first().isVisible());
+  await b.page.getByRole("link", { name: "Fotos", exact: true }).click();
+  await b.page.waitForURL(/ansicht=karten/);
+  check("Umschalter zeigt die Fotoansicht", (await b.page.locator("article").count()) === 2 && (await b.page.locator("table").count()) === 0);
+  await shot(b.page, "06b-suche-fotos", true);
 
   console.log("\n6. Suchauftrag und Merkliste");
   await b.page.goto(`${BASE}/suche?marke=Audi&preis_bis=30000`);
@@ -360,6 +373,10 @@ try {
     const m = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     await m.addCookies(await b.ctx.cookies());
     const p = await m.newPage();
+    const pub = await m.newPage();
+    await pub.goto(`${BASE}/preise`);
+    check("Öffentliche Seite mobil ohne horizontales Scrollen", !(await pub.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)));
+    await pub.close();
     await p.goto(`${BASE}/suche`);
     const overflow = await p.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
     check("Suche mobil ohne horizontales Scrollen", !overflow);

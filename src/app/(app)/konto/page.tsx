@@ -18,7 +18,7 @@ export default async function Konto() {
       </section>
       <aside className="space-y-4">
         <div className="card p-5">
-          <h2 className="font-semibold">Mitgliedschaft</h2>
+          <h2 className="h2">Mitgliedschaft</h2>
           {d.is_founding ? (
             <p className="mt-2 text-sm">
               <span className="badge bg-urgent-bg text-urgent">Gründerplatz Nr. {d.founding_number}</span>
@@ -39,7 +39,7 @@ export default async function Konto() {
           )}
         </div>
         <div className="card p-5 text-sm">
-          <h2 className="font-semibold">Zugang</h2>
+          <h2 className="h2">Zugang</h2>
           <p className="mt-2 text-muted">Angemeldet als {s.email}</p>
           <p className="mt-1 text-muted">USt-IdNr.: {s.priv?.vat_id || "nicht angegeben"}</p>
           <Link href={`/haendler/${s.userId}`} className="btn btn-secondary mt-3 w-full">Öffentliches Profil ansehen</Link>

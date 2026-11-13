@@ -17,7 +17,7 @@ export default async function Registrieren() {
       </p>
       <div className="card mt-6 p-6"><RegisterForm /></div>
       <p className="mt-4 text-sm text-muted">
-        Schon registriert? <Link href="/login" className="font-semibold text-brand-600">Anmelden</Link>
+        Schon registriert? <Link href="/login" className="link">Anmelden</Link>
       </p>
     </div>
   );

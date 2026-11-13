@@ -18,8 +18,8 @@ export function NavLinks({ unread, isAdmin }: { unread: number; isAdmin: boolean
   const path = usePathname();
   const all = isAdmin ? [...items, { href: "/admin", label: "Admin", match: ["/admin"] }] : items;
   return (
-    <nav className="border-t border-line" aria-label="Hauptnavigation">
-      <ul className="mx-auto flex max-w-6xl gap-1 overflow-x-auto px-2 text-sm">
+    <nav className="border-t border-white/10" aria-label="Hauptnavigation">
+      <ul className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-2 text-sm">
         {all.map((i) => {
           const active = i.match.some((m) => path === m || path.startsWith(m + "/"));
           return (
@@ -27,7 +27,7 @@ export function NavLinks({ unread, isAdmin }: { unread: number; isAdmin: boolean
               <Link
                 href={i.href}
                 aria-current={active ? "page" : undefined}
-                className={`flex items-center gap-1.5 border-b-2 px-2.5 py-2.5 font-medium ${active ? "border-brand-600 text-brand-700" : "border-transparent text-muted hover:text-ink"}`}
+                className={`flex items-center gap-1.5 border-b-[3px] px-2.5 pb-2 pt-2.5 font-display text-[15px] font-semibold uppercase tracking-wider ${active ? "border-accent text-accent" : "border-transparent text-brand-200 hover:text-white"}`}
               >
                 {i.label}
                 {i.href === "/nachrichten" && unread > 0 && (

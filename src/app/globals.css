@@ -1,21 +1,31 @@
 @import "tailwindcss";
 
+/* Designsystem "Handelsraum": Graphit, Signalgelb, schmale Schilder-Schrift, Zahlen in Mono. */
 @theme inline {
   --font-sans: var(--font-geist-sans), system-ui, sans-serif;
-  --color-brand-50: #eef7f8;
-  --color-brand-100: #d5ebee;
-  --color-brand-200: #a9d5db;
-  --color-brand-500: #17808c;
-  --color-brand-600: #0f6873;
-  --color-brand-700: #0c545d;
-  --color-brand-800: #0a434b;
-  --color-brand-900: #07323a;
-  --color-ink: #16242b;
-  --color-muted: #5c6b73;
-  --color-line: #dde3e7;
-  --color-page: #f3f5f7;
-  --color-urgent: #d9480f;
-  --color-urgent-bg: #fff1e6;
+  --font-display: var(--font-barlow), "Arial Narrow", system-ui, sans-serif;
+  --font-mono: var(--font-plex), ui-monospace, Consolas, monospace;
+
+  /* Graphit-Skala (trägt weiterhin den Namen "brand", damit bestehende Klassen mitziehen) */
+  --color-brand-50: #f0f2f3;
+  --color-brand-100: #e2e6e8;
+  --color-brand-200: #c5ccd1;
+  --color-brand-500: #4a575f;
+  --color-brand-600: #1c252b;
+  --color-brand-700: #161d22;
+  --color-brand-800: #12181c;
+  --color-brand-900: #0b0f12;
+
+  --color-accent: #f2b705;
+  --color-accent-600: #d9a300;
+  --color-accent-50: #fff6d6;
+
+  --color-ink: #12181c;
+  --color-muted: #56636b;
+  --color-line: #d8dde1;
+  --color-page: #eceff1;
+  --color-urgent: #d6330f;
+  --color-urgent-bg: #ffe9e2;
 }
 
 html { color-scheme: light; }
@@ -24,28 +34,40 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+:focus-visible { outline: 2px solid var(--color-accent-600); outline-offset: 2px; }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap;
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap;
   }
-  .btn-primary { @apply bg-brand-600 text-white hover:bg-brand-700; }
-  .btn-secondary { @apply border border-line bg-white text-ink hover:bg-brand-50; }
+  .btn-primary { @apply bg-accent text-ink hover:bg-accent-600; }
+  .btn-dark { @apply bg-brand-800 text-white hover:bg-brand-600; }
+  .btn-secondary { @apply border border-brand-200 bg-white text-ink hover:border-ink hover:bg-brand-50; }
+  .btn-ghost { @apply border border-white/25 text-white hover:bg-white/10; }
   .btn-danger { @apply border border-red-200 bg-white text-red-700 hover:bg-red-50; }
   .btn-urgent { @apply bg-urgent text-white hover:opacity-90; }
   .btn-sm { @apply px-3 py-1.5 text-xs; }
   .input {
-    @apply block w-full rounded-lg border border-line bg-white px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-brand-500 focus:outline-2 focus:outline-brand-200;
+    @apply block w-full rounded-md border border-brand-200 bg-white px-3 py-2.5 text-sm text-ink placeholder:text-muted/70 focus:border-ink focus:outline-2 focus:outline-accent;
   }
-  .label { @apply mb-1 block text-xs font-semibold text-muted; }
-  .card { @apply rounded-xl border border-line bg-white; }
-  .badge { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold; }
-  .h1 { @apply text-2xl font-bold tracking-tight; }
-  .notice { @apply rounded-lg border px-3 py-2.5 text-sm; }
+  .label { @apply mb-1 block text-[11px] font-semibold uppercase tracking-wider text-muted; }
+  .card { @apply rounded-lg border border-line bg-white; }
+  .badge { @apply inline-flex items-center whitespace-nowrap rounded px-2 py-0.5 text-xs font-semibold; }
+  .h1 { @apply font-display text-3xl font-bold uppercase leading-none tracking-wide; }
+  .h2 { @apply font-display text-xl font-bold uppercase tracking-wide; }
+  .eyebrow { @apply font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-muted; }
+  .price { @apply font-display font-bold tabular-nums leading-none; }
+  .num { @apply font-mono tabular-nums; }
+  .link { @apply font-semibold text-ink underline decoration-accent decoration-2 underline-offset-4 hover:decoration-ink; }
+  .notice { @apply rounded-md border px-3 py-2.5 text-sm; }
   .notice-error { @apply border-red-200 bg-red-50 text-red-800; }
   .notice-ok { @apply border-emerald-200 bg-emerald-50 text-emerald-800; }
-  .notice-info { @apply border-brand-200 bg-brand-50 text-brand-900; }
+  .notice-info { @apply border-accent bg-accent-50 text-ink; }
   .prose-legal h2 { @apply mt-6 mb-2 text-lg font-bold; }
   .prose-legal p, .prose-legal li { @apply mb-2 text-sm leading-relaxed text-ink; }
   .prose-legal ul { @apply list-disc pl-5; }
+  /* Schraffur wie eine Markierung auf dem Hof: Akzent für dunkle Flächen */
+  .hatch {
+    background-image: repeating-linear-gradient(-45deg, var(--color-accent) 0 10px, var(--color-brand-800) 10px 20px);
+  }
 }

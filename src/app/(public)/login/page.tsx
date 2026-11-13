@@ -14,7 +14,7 @@ export default async function Login({ searchParams }: { searchParams: Promise<{ 
       {fehler === "link" && <p className="notice notice-error mt-4">Der Bestätigungslink ist ungültig oder abgelaufen.</p>}
       <div className="card mt-6 p-6"><LoginForm /></div>
       <p className="mt-4 text-sm text-muted">
-        Noch kein Account? <Link href="/registrieren" className="font-semibold text-brand-600">Jetzt registrieren</Link>
+        Noch kein Account? <Link href="/registrieren" className="link">Jetzt registrieren</Link>
       </p>
     </div>
   );

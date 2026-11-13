@@ -4,13 +4,22 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-const benefits = [
-  { t: "Unbegrenzt inserieren", d: "Ein Festpreis im Monat, egal ob 5 oder 500 Fahrzeuge. Keine Kosten pro Inserat." },
-  { t: "Nur geprüfte Händler", d: "Jeder Account wird anhand des Gewerbenachweises von Hand freigeschaltet. Keine Privatkunden." },
-  { t: "Ohne Sachmängelhaftung", d: "Reiner Handel zwischen Unternehmern. Jedes Inserat trägt den B2B-Hinweis." },
-  { t: "In 2 Minuten online", d: "Schnell-Formular fürs Handy: Eckdaten, Preis, Fotos, fertig. Ausstattung nur wenn gewünscht." },
-  { t: "Gebote und Direktchat", d: "Preisvorschläge annehmen, ablehnen oder kontern. Kontakt per Chat, Telefon oder WhatsApp." },
-  { t: "Suchgesuche und Händlerchat", d: "Sagen Sie, was Sie suchen, und lassen Sie sich Fahrzeuge anbieten. Dazu Gruppenchats nach Region." },
+const benefits: [string, string][] = [
+  ["Unbegrenzt inserieren", "Ein Festpreis im Monat, egal ob 5 oder 500 Fahrzeuge. Keine Kosten pro Inserat."],
+  ["Nur geprüfte Händler", "Jeder Account wird anhand des Gewerbenachweises von Hand freigeschaltet. Keine Privatkunden."],
+  ["Ohne Sachmängelhaftung", "Reiner Handel zwischen Unternehmern. Jedes Inserat trägt den B2B-Hinweis."],
+  ["In zwei Minuten online", "Schnell-Formular fürs Handy: Eckdaten, Preis, Fotos. Ausstattung nur, wenn gewünscht."],
+  ["Gebote und Direktchat", "Preisvorschläge annehmen, ablehnen oder kontern. Kontakt per Chat, Telefon oder WhatsApp."],
+  ["Gesuche und Händlerchat", "Sagen Sie, was Sie suchen, und lassen Sie sich Fahrzeuge anbieten. Dazu Gruppenchats nach Region."],
+];
+
+// Beispielzeilen für die Handelsliste im Kopfbereich (reine Illustration)
+const sample: [string, string, string, string, boolean][] = [
+  ["VW Golf 2.0 TDI", "05/2018 · 98.000 km", "Köln", "11.900", true],
+  ["BMW 320d Touring", "03/2017 · 142.000 km", "Düsseldorf", "17.850", false],
+  ["Mercedes Sprinter 316", "11/2019 · 121.000 km", "Hamburg", "22.400", false],
+  ["Audi A6 Avant 40 TDI", "09/2019 · 88.000 km", "München", "24.900", true],
+  ["Ford Transit Custom", "02/2020 · 76.000 km", "Leipzig", "18.300", false],
 ];
 
 export default async function Home() {
@@ -21,76 +30,110 @@ export default async function Home() {
   return (
     <>
       <section className="bg-brand-800 text-white">
-        <div className="mx-auto grid max-w-6xl gap-8 px-4 py-14 md:grid-cols-[1.3fr_1fr] md:py-20">
+        <div className="mx-auto grid max-w-6xl gap-10 px-4 pb-14 pt-10 lg:grid-cols-[1.05fr_1fr] lg:items-center lg:pb-20 lg:pt-16">
           <div>
-            <p className="mb-3 inline-block rounded-full bg-white/10 px-3 py-1 text-xs font-semibold">
-              Nur für Gewerbetreibende
-            </p>
-            <h1 className="text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
-              Inzahlungnahmen schnell an Händlerkollegen verkaufen.
+            <p className="eyebrow text-accent">Fahrzeugbörse · nur für Gewerbetreibende</p>
+            <h1 className="mt-4 font-display text-5xl font-extrabold uppercase leading-[0.95] tracking-wide sm:text-7xl">
+              Von Händler<br />zu Händler.<br /><span className="text-accent">Schnell weg.</span>
             </h1>
-            <p className="mt-4 max-w-xl text-base text-brand-100 sm:text-lg">
-              {site.name} ist die Fahrzeugbörse von Händlern für Händler: unbegrenzt inserieren für{" "}
-              {priceLabel()} im Monat statt mehrerer tausend Euro auf Endkundenportalen.
+            <p className="mt-5 max-w-xl text-base text-brand-200 sm:text-lg">
+              Inzahlungnahmen und Standuhren direkt an Kollegen verkaufen: unbegrenzt inserieren
+              für {priceLabel()} im Monat statt mehrerer tausend Euro auf Endkundenportalen.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/registrieren" className="btn bg-white px-5 py-3 text-brand-800 hover:bg-brand-50">
-                Jetzt kostenlos registrieren
-              </Link>
-              <Link href="/preise" className="btn border border-white/30 px-5 py-3 text-white hover:bg-white/10">
-                Preise ansehen
-              </Link>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <Link href="/registrieren" className="btn btn-primary px-6 py-3 text-base">Jetzt kostenlos registrieren</Link>
+              <Link href="/preise" className="btn btn-ghost px-6 py-3 text-base">Preise ansehen</Link>
             </div>
+            <dl className="mt-9 flex flex-wrap gap-x-10 gap-y-4 border-t border-white/10 pt-6">
+              <div>
+                <dt className="eyebrow text-brand-200">Gründerplätze frei</dt>
+                <dd className="price mt-1 text-4xl text-accent">{left}<span className="text-xl text-brand-200"> / {site.foundingSlots}</span></dd>
+              </div>
+              <div>
+                <dt className="eyebrow text-brand-200">Pro Monat</dt>
+                <dd className="price mt-1 text-4xl">{priceLabel()}</dd>
+              </div>
+              <div>
+                <dt className="eyebrow text-brand-200">Inserate</dt>
+                <dd className="price mt-1 text-4xl">Unbegrenzt</dd>
+              </div>
+            </dl>
           </div>
-          <div className="self-center rounded-2xl bg-white p-6 text-ink shadow-xl">
-            <p className="text-sm font-semibold text-urgent">Gründerangebot</p>
-            <p className="mt-1 text-4xl font-bold tabular-nums">
-              {left} <span className="text-lg font-semibold text-muted">von {site.foundingSlots}</span>
-            </p>
-            <p className="mt-1 text-sm text-muted">Gratisplätzen sind noch frei.</p>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-brand-100" aria-hidden>
-              <div className="h-full bg-brand-600" style={{ width: `${((site.foundingSlots - left) / site.foundingSlots) * 100}%` }} />
+
+          <div aria-hidden className="relative">
+            <div className="hatch absolute -right-2 -top-2 h-full w-full rounded-lg opacity-90" />
+            <div className="relative overflow-hidden rounded-lg border border-white/10 bg-brand-900">
+              <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+                <span className="eyebrow text-brand-200">Handelsliste · Beispiel</span>
+                <span className="flex items-center gap-1.5 font-mono text-[11px] text-accent">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent" /> LIVE
+                </span>
+              </div>
+              <ul>
+                {sample.map(([car, meta, city, price, urgent]) => (
+                  <li key={car} className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3 last:border-0">
+                    <div className="min-w-0">
+                      <p className="truncate font-display text-lg font-semibold uppercase leading-tight tracking-wide">{car}</p>
+                      <p className="truncate font-mono text-[11px] text-brand-200">{meta} · {city}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      {urgent && <span className="badge hidden bg-urgent text-white sm:inline-flex">Muss weg</span>}
+                      <span className="price text-2xl text-accent">{price} €</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <p className="mt-4 text-sm">
-              Die ersten {site.foundingSlots} freigeschalteten Händler nutzen {site.name} dauerhaft kostenlos.
-            </p>
           </div>
         </div>
+        <div className="hatch h-2" aria-hidden />
       </section>
 
-      <section className="mx-auto max-w-6xl px-4 py-12">
-        <h2 className="h1">Warum Händler wechseln</h2>
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {benefits.map((b) => (
-            <div key={b.t} className="card p-5">
-              <h3 className="font-semibold">{b.t}</h3>
-              <p className="mt-1 text-sm text-muted">{b.d}</p>
+      <section className="mx-auto max-w-6xl px-4 py-14">
+        <p className="eyebrow">Warum Händler wechseln</p>
+        <h2 className="mt-2 font-display text-4xl font-extrabold uppercase leading-none tracking-wide">Ein Werkzeug, kein Schaufenster</h2>
+        <dl className="mt-8 grid gap-x-10 sm:grid-cols-2">
+          {benefits.map(([t, d]) => (
+            <div key={t} className="flex gap-4 border-t border-brand-200 py-5">
+              <span className="mt-1.5 h-3 w-3 shrink-0 bg-accent" aria-hidden />
+              <div>
+                <dt className="h2">{t}</dt>
+                <dd className="mt-1 text-sm text-muted">{d}</dd>
+              </div>
             </div>
           ))}
-        </div>
+        </dl>
       </section>
 
-      <section className="border-y border-line bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-12">
-          <h2 className="h1">So funktioniert es</h2>
-          <ol className="mt-6 grid gap-4 md:grid-cols-3">
+      <section className="bg-white">
+        <div className="mx-auto max-w-6xl px-4 py-14">
+          <p className="eyebrow">So funktioniert es</p>
+          <h2 className="mt-2 font-display text-4xl font-extrabold uppercase leading-none tracking-wide">In drei Schritten im Handel</h2>
+          <ol className="mt-8 grid gap-6 md:grid-cols-3">
             {[
-              ["1", "Registrieren", "Firmendaten eintragen und Gewerbenachweis hochladen."],
-              ["2", "Freischaltung", "Wir prüfen den Nachweis und schalten Ihren Account frei."],
-              ["3", "Handeln", "Fahrzeuge einstellen, suchen, bieten und direkt mit Kollegen abschließen."],
-            ].map(([n, t, d]) => (
-              <li key={n} className="flex gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-600 font-bold text-white">{n}</span>
-                <div>
-                  <p className="font-semibold">{t}</p>
-                  <p className="text-sm text-muted">{d}</p>
-                </div>
+              ["Registrieren", "Firmendaten eintragen und Gewerbenachweis hochladen."],
+              ["Freischaltung", "Wir prüfen den Nachweis und schalten Ihren Account frei."],
+              ["Handeln", "Fahrzeuge einstellen, suchen, bieten und direkt mit Kollegen abschließen."],
+            ].map(([t, d], i) => (
+              <li key={t} className="border-l-4 border-accent pl-4">
+                <span className="price block text-5xl text-brand-200">{i + 1}</span>
+                <p className="h2 mt-2">{t}</p>
+                <p className="mt-1 text-sm text-muted">{d}</p>
               </li>
             ))}
           </ol>
-          <div className="mt-8">
-            <Link href="/registrieren" className="btn btn-primary px-5 py-3">Händler-Account anlegen</Link>
+        </div>
+      </section>
+
+      <section className="bg-accent">
+        <div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-5 px-4 py-10 md:flex-row md:items-center">
+          <div>
+            <h2 className="font-display text-4xl font-extrabold uppercase leading-none tracking-wide">Noch {left} von {site.foundingSlots} Gratisplätzen</h2>
+            <p className="mt-2 max-w-xl text-sm">
+              Die ersten {site.foundingSlots} freigeschalteten Händler nutzen {site.name} dauerhaft kostenlos.
+            </p>
           </div>
+          <Link href="/registrieren" className="btn btn-dark px-6 py-3 text-base">Händler-Account anlegen</Link>
         </div>
       </section>
     </>

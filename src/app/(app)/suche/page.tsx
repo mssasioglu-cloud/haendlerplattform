@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ListingCard } from "@/components/ListingCard";
+import { ListingTable } from "@/components/ListingRow";
 import { SearchFilters } from "@/components/SearchFilters";
 import { SaveSearchButton } from "@/components/SaveSearchButton";
 import { parseFilters, toRpcParams, filtersToQuery, describeFilters } from "@/lib/filters";
@@ -20,6 +21,7 @@ export default async function Suche({ searchParams }: { searchParams: Promise<Re
   const filters = parseFilters(sp);
   const sortRaw = typeof sp.sort === "string" ? sp.sort : "neu";
   const sort = SORTS.some(([v]) => v === sortRaw) && (sortRaw !== "naehe" || filters.plz) ? sortRaw : "neu";
+  const view = sp.ansicht === "karten" ? "karten" : "tabelle";
   const page = Math.max(1, Number.parseInt(typeof sp.seite === "string" ? sp.seite : "1", 10) || 1);
 
   const supabase = await createClient();
@@ -31,21 +33,32 @@ export default async function Suche({ searchParams }: { searchParams: Promise<Re
   const total = rows[0]?.total_count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const favSet = new Set((favs ?? []).map((f) => f.listing_id));
-  const link = (p: number) => `/suche?${filtersToQuery(filters, { sort, seite: String(p) })}`;
+  const viewParam = view === "karten" ? "karten" : "";
+  const link = (p: number) => `/suche?${filtersToQuery(filters, { sort, ansicht: viewParam, seite: String(p) })}`;
+  const viewLink = (v: string) => `/suche?${filtersToQuery(filters, { sort, ansicht: v === "karten" ? "karten" : "" })}`;
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-      <aside><SearchFilters filters={filters} sort={sort} /></aside>
+    <div className="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <aside><SearchFilters filters={filters} sort={sort} view={viewParam} /></aside>
       <section>
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h1 className="h1">{total.toLocaleString("de-DE")} {total === 1 ? "Fahrzeug" : "Fahrzeuge"}</h1>
-            <p className="text-sm text-muted">{describeFilters(filters)}</p>
+            <p className="eyebrow">{describeFilters(filters)}</p>
+            <h1 className="h1 mt-1">{total.toLocaleString("de-DE")} {total === 1 ? "Fahrzeug" : "Fahrzeuge"}</h1>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <SaveSearchButton filters={filters} suggestedName={describeFilters(filters)} />
+            <div className="flex overflow-hidden rounded-md border border-brand-200 bg-white text-xs font-semibold" role="group" aria-label="Ansicht">
+              {[["tabelle", "Tabelle"], ["karten", "Fotos"]].map(([v, label]) => (
+                <Link key={v} href={viewLink(v)} aria-current={view === v ? "true" : undefined}
+                  className={`px-3 py-2.5 ${view === v ? "bg-brand-800 text-white" : "text-ink hover:bg-brand-50"}`}>
+                  {label}
+                </Link>
+              ))}
+            </div>
             <form className="flex items-center gap-2">
               {Object.entries(filters).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
+              {viewParam && <input type="hidden" name="ansicht" value={viewParam} />}
               <label htmlFor="sort" className="sr-only">Sortierung</label>
               <select id="sort" name="sort" defaultValue={sort} className="input w-auto py-2">
                 {SORTS.filter(([v]) => v !== "naehe" || filters.plz).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -59,13 +72,17 @@ export default async function Suche({ searchParams }: { searchParams: Promise<Re
           <div className="card p-8 text-center">
             <p className="font-semibold">Keine Fahrzeuge zu diesen Filtern.</p>
             <p className="mt-1 text-sm text-muted">
-              Speichern Sie die Suche als Suchauftrag oder stellen Sie ein <Link href="/gesuche/neu" className="font-semibold text-brand-600">Gesuch</Link> ein.
+              Speichern Sie die Suche als Suchauftrag oder stellen Sie ein <Link href="/gesuche/neu" className="link">Gesuch</Link> ein.
             </p>
           </div>
         )}
-        <div className="space-y-3">
-          {rows.map((l) => <ListingCard key={l.id} l={l} isFavorite={favSet.has(l.id)} />)}
-        </div>
+        {rows.length > 0 && (view === "tabelle" ? (
+          <ListingTable rows={rows} favorites={favSet} />
+        ) : (
+          <div className="space-y-3">
+            {rows.map((l) => <ListingCard key={l.id} l={l} isFavorite={favSet.has(l.id)} />)}
+          </div>
+        ))}
         {pages > 1 && (
           <nav className="mt-6 flex items-center justify-center gap-3 text-sm" aria-label="Seiten">
             {page > 1 ? <Link href={link(page - 1)} className="btn btn-secondary">Zurück</Link> : <span />}

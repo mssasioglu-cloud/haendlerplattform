@@ -59,7 +59,7 @@ export default async function Haendler({ params }: { params: Promise<{ id: strin
         </div>
 
         <div className="card p-5">
-          <h2 className="mb-3 font-semibold">Bewertungen</h2>
+          <h2 className="h2 mb-3">Bewertungen</h2>
           {rev.length === 0 && <p className="text-sm text-muted">Noch keine Bewertungen.</p>}
           <ul className="space-y-3">
             {rev.map((r) => (
