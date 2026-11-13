@@ -6,14 +6,15 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAccess } from "@/lib/auth";
 import { sendMail } from "@/lib/mail";
 import { absoluteUrl, eur } from "@/lib/format";
-import { CATEGORIES, FUELS, TRANSMISSIONS, FEATURES } from "@/lib/vehicle";
+import { CATEGORIES, FUELS, TRANSMISSIONS, FEATURES, DEFECTS } from "@/lib/vehicle";
+import { quality, requiredMissing } from "@/lib/quality";
 import type { ActionState } from "@/lib/types";
 
 export type ListingInput = {
   category: string; make: string; model: string; variant: string;
   first_registration: string; mileage: string; fuel: string; transmission: string; power_kw: string;
   color: string; hu_until: string; owners: string; accident_free: string; service_history: string;
-  roadworthy: boolean; vin: string; damage_notes: string; description: string;
+  roadworthy: boolean; vin: string; damage_notes: string; defects: string[]; no_known_defects: boolean; description: string;
   features: string[]; extra: Record<string, string>;
   price: string; vat_type: string; price_is_net: boolean; urgent: boolean; zip: string; b2b: boolean;
 };
@@ -39,6 +40,10 @@ export async function saveListing(input: ListingInput, imagePaths: string[], id?
 
   const allFeatures = Object.values(FEATURES).flat();
   const paths = imagePaths.filter((p) => p.startsWith(`${s.userId}/`)).slice(0, MAX_IMAGES);
+  const defects = (input.defects ?? []).filter((d) => DEFECTS.includes(d));
+  const q = { ...input, defects, no_known_defects: !!input.no_known_defects && defects.length === 0, photos: paths.length };
+  const missing = requiredMissing(q);
+  if (missing.length) return { error: `Es fehlt noch: ${missing.join(", ")}.` };
   const row = {
     category: input.category,
     make: input.make.trim().slice(0, 60),
@@ -57,6 +62,9 @@ export async function saveListing(input: ListingInput, imagePaths: string[], id?
     roadworthy: input.roadworthy,
     vin: input.vin.trim().toUpperCase().slice(0, 17) || null,
     damage_notes: input.damage_notes.trim().slice(0, 4000),
+    defects,
+    no_known_defects: q.no_known_defects,
+    quality_score: quality(q).score,
     description: input.description.trim().slice(0, 6000),
     features: input.features.filter((f) => allFeatures.includes(f)),
     extra: Object.fromEntries(Object.entries(input.extra).filter(([, v]) => v.trim() !== "").map(([k, v]) => [k, v.trim().slice(0, 80)])),
@@ -164,4 +172,14 @@ export async function reportListing(_: ActionState, fd: FormData): Promise<Actio
   const supabase = await createClient();
   const { error } = await supabase.from("reports").insert({ listing_id: String(fd.get("id")), reporter_id: s.userId, reason });
   return error ? { error: "Meldung konnte nicht gespeichert werden." } : { ok: "Danke, wir prüfen das Inserat." };
+}
+
+// Laufzeit um 30 Tage verlängern (auch für bereits abgelaufene Inserate)
+export async function extendListing(fd: FormData) {
+  const s = await requireAccess();
+  const supabase = await createClient();
+  await supabase.from("listings").update({ expires_at: new Date(Date.now() + 30 * 86400000).toISOString() })
+    .eq("id", String(fd.get("id"))).eq("dealer_id", s.userId);
+  revalidatePath("/meine-inserate");
+  revalidatePath("/suche");
 }

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { setListingStatus, toggleUrgent } from "@/app/actions/listings";
-import { eur, km, monthYear, imageUrl, dateDe } from "@/lib/format";
+import { setListingStatus, toggleUrgent, extendListing } from "@/app/actions/listings";
+import { eur, km, monthYear, imageUrl, dateDe, daysLeft } from "@/lib/format";
+import { COMPLETE_FROM } from "@/lib/quality";
 
 export const metadata = { title: "Meine Inserate" };
 
@@ -10,10 +11,10 @@ export default async function MeineInserate() {
   const s = await requireAccess();
   const supabase = await createClient();
   const { data } = await supabase.from("listings")
-    .select("id, make, model, variant, price_gross, mileage, first_registration, status, urgent, created_at, listing_images(path, position)")
+    .select("id, make, model, variant, price_gross, mileage, first_registration, status, urgent, created_at, expires_at, quality_score, listing_images(path, position)")
     .eq("dealer_id", s.userId).order("created_at", { ascending: false });
   const rows = data ?? [];
-  const active = rows.filter((r) => r.status === "aktiv").length;
+  const active = rows.filter((r) => r.status === "aktiv" && daysLeft(r.expires_at) > 0).length;
 
   return (
     <>
@@ -45,9 +46,13 @@ export default async function MeineInserate() {
                   <span className="block text-sm text-muted">
                     {eur(r.price_gross)} · {km(r.mileage)} · EZ {monthYear(r.first_registration)} · seit {dateDe(r.created_at)}
                   </span>
-                  <span className="mt-1 flex gap-1.5">
+                  <span className="mt-1 flex flex-wrap gap-1.5">
                     <span className={`badge capitalize ${r.status === "aktiv" ? "bg-emerald-100 text-emerald-800" : "bg-line text-ink"}`}>{r.status}</span>
                     {r.urgent && <span className="badge bg-urgent-bg text-urgent">Muss schnell weg</span>}
+                    {r.status === "aktiv" && (daysLeft(r.expires_at) <= 0
+                      ? <span className="badge bg-urgent text-white">Abgelaufen</span>
+                      : <span className={`badge ${daysLeft(r.expires_at) <= 5 ? "bg-urgent-bg text-urgent" : "bg-brand-100 text-ink"}`}>läuft in {daysLeft(r.expires_at)} Tagen ab</span>)}
+                    <span className={`badge ${r.quality_score >= COMPLETE_FROM ? "bg-emerald-100 text-emerald-800" : "bg-brand-100 text-ink"}`}>{r.quality_score} % vollständig</span>
                   </span>
                 </span>
               </Link>
@@ -58,6 +63,12 @@ export default async function MeineInserate() {
                   <input type="hidden" name="urgent" value={r.urgent ? "0" : "1"} />
                   <button className="btn btn-secondary btn-sm">{r.urgent ? "Nicht mehr dringend" : "Dringend"}</button>
                 </form>
+                {r.status === "aktiv" && daysLeft(r.expires_at) <= 10 && (
+                  <form action={extendListing}>
+                    <input type="hidden" name="id" value={r.id} />
+                    <button className="btn btn-primary btn-sm">30 Tage verlängern</button>
+                  </form>
+                )}
                 <form action={setListingStatus}>
                   <input type="hidden" name="id" value={r.id} />
                   <input type="hidden" name="status" value={r.status === "verkauft" ? "aktiv" : "verkauft"} />

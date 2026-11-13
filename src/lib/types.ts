@@ -15,6 +15,8 @@ export type Dealer = {
   founding_number: number | null;
   approved_at: string | null;
   created_at: string;
+  invite_code?: string | null;
+  invited_by?: string | null;
 };
 
 export type DealerPrivate = {
@@ -48,6 +50,12 @@ export type Listing = {
   roadworthy: boolean;
   vin: string | null;
   damage_notes: string;
+  defects: string[];
+  no_known_defects: boolean;
+  quality_score: number;
+  expires_at: string;
+  previous_price_gross: number | null;
+  price_changed_at: string | null;
   description: string;
   features: string[];
   extra: Record<string, string>;
@@ -74,6 +82,10 @@ export type ListingCard = Pick<
   company_name?: string;
   distance?: number | null;
   total_count?: number;
+  quality_score?: number;
+  previous_price_gross?: number | null;
+  price_changed_at?: string | null;
+  expires_at?: string;
 };
 
 export type Offer = {

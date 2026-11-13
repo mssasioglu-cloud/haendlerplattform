@@ -13,6 +13,19 @@ const DEMO_VIN = "DEMO";
 const DEMO_SEARCH = "Demo: ";
 const NOTE = "Beispieldaten zur Vorführung der Plattform. Dieses Fahrzeug steht nicht wirklich zum Verkauf.";
 
+// Mängel-Checkliste aus dem Beispieltext ableiten
+function demoDefects(text: string) {
+  if (/^keine bekannten/i.test(text)) return [] as string[];
+  const map: [RegExp, string][] = [
+    [/kratzer|lack|steinschl|nachlackiert|schramm/i, "Lack / Kratzer"], [/beule|hagel|rost/i, "Karosserie / Dellen"],
+    [/ölverlust|adblue/i, "Motor"], [/kupplung/i, "Getriebe / Kupplung"], [/bremsen/i, "Fahrwerk / Bremsen"],
+    [/reifen|felgen/i, "Reifen / Felgen"], [/laderaum|markise|schiebetür|pritschenboden/i, "Innenraum"],
+    [/service|inspektion/i, "Service / HU fällig"],
+  ];
+  const found = map.filter(([re]) => re.test(text)).map(([, d]) => d);
+  return found.length ? found : ["Lack / Kratzer"];
+}
+
 const daysAgo = (d: number, h = 0) => new Date(Date.now() - d * 86400000 - h * 3600000).toISOString();
 
 const DEALERS = [
@@ -122,7 +135,10 @@ export async function loadDemoData(_: ActionState): Promise<ActionState> {
     const row = (l: DemoListing | (typeof OWN_LISTINGS)[number], dealerId: string, zip: string, vin: string | null) => ({
       dealer_id: dealerId, category: "category" in l ? l.category : "pkw", make: l.make, model: l.model, variant: l.variant,
       first_registration: `${l.ez}-01`, mileage: l.km, fuel: l.fuel, transmission: l.gear, power_kw: l.kw, color: l.color,
-      damage_notes: l.damage, description: NOTE, features: "features" in l ? l.features : [], extra: ("extra" in l && l.extra) || {},
+      damage_notes: l.damage, defects: demoDefects(l.damage), no_known_defects: /^keine bekannten/i.test(l.damage),
+      quality_score: "photo" in l && l.photo != null ? 88 : 62,
+      expires_at: new Date(Date.now() + Math.max(2, 30 - l.age) * 86400000).toISOString(),
+      accident_free: !/unfall|nachlackiert|hagel/i.test(l.damage), description: NOTE, features: "features" in l ? l.features : [], extra: ("extra" in l && l.extra) || {},
       price: l.price, vat_type: l.vat, price_is_net: ("net" in l && !!l.net) || false, urgent: ("urgent" in l && !!l.urgent) || false,
       zip, city: "", b2b_confirmed: true, vin, created_at: daysAgo(l.age, 2), roadworthy: true,
     });
@@ -133,6 +149,11 @@ export async function loadDemoData(_: ActionState): Promise<ActionState> {
     const { data: own, error: oErr } = await db.from("listings")
       .insert(OWN_LISTINGS.map((l, i) => row(l, me, s.dealer.zip, `${DEMO_VIN}${String(i + 1).padStart(13, "0")}`))).select("id, make, model");
     if (oErr || !own) throw new Error(oErr?.message);
+
+    // Drei Fahrzeuge mit Preissenkung (der Datenbank-Trigger merkt sich den alten Preis)
+    for (const [make, model, price] of [["Fiat", "500", 4900], ["Renault", "Clio", 8900], ["Iveco", "Daily", 12900]] as const) {
+      await db.from("listings").update({ price }).eq("id", byName(make, model).id);
+    }
 
     // 3. Fotos (fehlende Dateien werden übersprungen)
     const origin = requestOrigin(await headers());

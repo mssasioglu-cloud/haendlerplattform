@@ -49,3 +49,10 @@ export const B2B_NOTICE =
 export function categoryLabel(v: string | null | undefined) {
   return CATEGORIES.find((c) => c.value === v)?.label ?? "";
 }
+
+// Mängel-Checkliste: macht Inserate vergleichbar und ersetzt Pflicht-Freitext
+export const DEFECTS = [
+  "Lack / Kratzer", "Karosserie / Dellen", "Unfallschaden", "Motor", "Getriebe / Kupplung", "Elektrik / Elektronik",
+  "Fahrwerk / Bremsen", "Reifen / Felgen", "Innenraum", "Service / HU fällig",
+];
+export const MIN_PHOTOS = 3;

@@ -2,7 +2,7 @@
 // die Felder gespeicherter Suchaufträge.
 export const FILTER_KEYS = [
   "kategorie", "marke", "modell", "preis_von", "preis_bis", "km_bis", "ez_von", "ez_bis",
-  "kraftstoff", "getriebe", "mwst", "dringend", "plz", "umkreis", "q",
+  "kraftstoff", "getriebe", "mwst", "dringend", "preis_gesenkt", "plz", "umkreis", "q",
 ] as const;
 export type Filters = Partial<Record<(typeof FILTER_KEYS)[number], string>>;
 
@@ -37,6 +37,7 @@ export function toRpcParams(f: Filters) {
     p_transmission: f.getriebe ?? null,
     p_vat_type: f.mwst ?? null,
     p_urgent: f.dringend ? true : null,
+    p_price_dropped: f.preis_gesenkt ? true : null,
     p_zip: f.plz ?? null,
     p_radius_km: f.plz ? int(f.umkreis) : null,
     p_q: f.q ?? null,
@@ -61,5 +62,6 @@ export function describeFilters(f: Filters) {
   if (f.kraftstoff) parts.push(f.kraftstoff);
   if (f.plz) parts.push(`${f.umkreis ? f.umkreis + " km um " : ""}${f.plz}`);
   if (f.dringend) parts.push("muss schnell weg");
+  if (f.preis_gesenkt) parts.push("Preis gesenkt");
   return parts.join(", ") || "Alle Fahrzeuge";
 }

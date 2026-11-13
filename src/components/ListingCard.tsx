@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ListingCard as Card } from "@/lib/types";
-import { eur, km, monthYear, prices, imageUrl, standzeit } from "@/lib/format";
+import { eur, km, monthYear, prices, imageUrl, standzeit, priceDrop } from "@/lib/format";
 import { VAT_LABEL } from "@/lib/vehicle";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
@@ -40,6 +40,7 @@ export function ListingCard({ l, isFavorite, showFavorite = true }: { l: Card; i
             {l.company_name && ` · ${l.company_name}`}
           </span>
           <span className="flex items-center gap-2">
+            {priceDrop(l) != null && <span className="num font-semibold text-emerald-700">▼ −{eur(priceDrop(l))}</span>}
             <span className="num">{standzeit(l.created_at)}</span>
             <span className="badge bg-brand-100 text-ink">{p.net != null ? `${eur(p.net)} netto` : VAT_LABEL[l.vat_type]?.split(" (")[0]}</span>
           </span>

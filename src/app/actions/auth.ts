@@ -1,5 +1,7 @@
 "use server";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { absoluteUrl } from "@/lib/format";
@@ -72,5 +74,15 @@ export async function completeOnboarding(input: {
     dealer_id: user.id, email: user.email ?? "", vat_id: v.vat_id, license_path: v.license_path,
   });
   if (e2 && e2.code !== "23505") return { error: "Speichern fehlgeschlagen. Bitte erneut versuchen." };
+
+  // Einladung: Der Werber wird serverseitig eingetragen (Händler können die Spalte nicht selbst setzen)
+  const jar = await cookies();
+  const code = jar.get("hd_invite")?.value;
+  if (code && /^[a-z0-9]{6,16}$/.test(code)) {
+    const admin = createAdminClient();
+    const { data: inviter } = await admin.from("dealers").select("id").eq("invite_code", code).maybeSingle();
+    if (inviter && inviter.id !== user.id) await admin.from("dealers").update({ invited_by: inviter.id }).eq("id", user.id);
+    jar.delete("hd_invite");
+  }
   redirect("/status");
 }

@@ -29,7 +29,7 @@ export default async function Bearbeiten({ params }: { params: Promise<{ id: str
           fuel: l.fuel ?? "", transmission: l.transmission ?? "", power_kw: l.power_kw?.toString() ?? "",
           color: l.color ?? "", hu_until: l.hu_until?.slice(0, 7) ?? "", owners: l.owners?.toString() ?? "",
           accident_free: tri(l.accident_free), service_history: tri(l.service_history), roadworthy: l.roadworthy,
-          vin: l.vin ?? "", damage_notes: l.damage_notes, description: l.description, features: l.features,
+          vin: l.vin ?? "", damage_notes: l.damage_notes, defects: l.defects ?? [], no_known_defects: !!l.no_known_defects, description: l.description, features: l.features,
           extra: l.extra ?? {}, price: String(l.price), vat_type: l.vat_type, price_is_net: l.price_is_net,
           urgent: l.urgent, zip: l.zip, b2b: true,
         }}

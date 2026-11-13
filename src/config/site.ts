@@ -16,7 +16,10 @@ export const site = {
   },
 } as const;
 
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+// Öffentliche Adresse: ausdrücklich gesetzt, sonst die Produktionsadresse von Vercel, sonst lokal
+export const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "http://localhost:3000");
 
 export function priceLabel() {
   return site.priceMonthly.toLocaleString("de-DE", { style: "currency", currency: "EUR" });

@@ -45,6 +45,17 @@ export function whatsappLink(numberRaw: string, text: string) {
   return `https://wa.me/${n}?text=${encodeURIComponent(text)}`;
 }
 
+// Preissenkung der letzten 30 Tage in Euro (positiv = günstiger geworden), sonst null
+export function priceDrop(l: { price_gross: number; previous_price_gross?: number | null; price_changed_at?: string | null }) {
+  if (l.previous_price_gross == null || !l.price_changed_at) return null;
+  if (Date.now() - new Date(l.price_changed_at).getTime() > 30 * 86400000) return null;
+  const diff = l.previous_price_gross - l.price_gross;
+  return diff > 0 ? diff : null;
+}
+export function daysLeft(expiresAt: string) {
+  return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / 86400000);
+}
+
 export const absoluteUrl = (path: string) => `${siteUrl.replace(/\/$/, "")}${path}`;
 
 // Standzeit eines Inserats in Tagen seit dem Einstellen

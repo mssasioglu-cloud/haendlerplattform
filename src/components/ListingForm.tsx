@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { saveListing, type ListingInput } from "@/app/actions/listings";
-import { CATEGORIES, FUELS, TRANSMISSIONS, COLORS, MAKES, ALL_MAKES, FEATURES, EXTRA_FIELDS, B2B_NOTICE } from "@/lib/vehicle";
+import { CATEGORIES, FUELS, TRANSMISSIONS, COLORS, MAKES, ALL_MAKES, FEATURES, EXTRA_FIELDS, B2B_NOTICE, DEFECTS, MIN_PHOTOS } from "@/lib/vehicle";
+import { quality, requiredMissing } from "@/lib/quality";
 import { imageUrl } from "@/lib/format";
 
 const MAX_IMAGES = 20;
@@ -10,7 +11,7 @@ const MAX_IMAGES = 20;
 const empty: ListingInput = {
   category: "pkw", make: "", model: "", variant: "", first_registration: "", mileage: "", fuel: "", transmission: "",
   power_kw: "", color: "", hu_until: "", owners: "", accident_free: "", service_history: "", roadworthy: true, vin: "",
-  damage_notes: "", description: "", features: [], extra: {}, price: "", vat_type: "differenz", price_is_net: false,
+  damage_notes: "", defects: [], no_known_defects: false, description: "", features: [], extra: {}, price: "", vat_type: "differenz", price_is_net: false,
   urgent: false, zip: "", b2b: false,
 };
 
@@ -36,6 +37,9 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
   const [error, setError] = useState<string | null>(null);
   const set = <K extends keyof ListingInput>(k: K, val: ListingInput[K]) => setV((o) => ({ ...o, [k]: val }));
   const makes = MAKES[v.category]?.length ? MAKES[v.category] : ALL_MAKES;
+  const qInput = { ...v, photos: images.length };
+  const q = quality(qInput);
+  const required = requiredMissing(qInput);
 
   async function onFiles(files: FileList | null) {
     if (!files?.length) return;
@@ -71,6 +75,11 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (required.length) {
+      setError(`Es fehlt noch: ${required.join(", ")}.`);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
     setBusy(true);
     try {
       const res = await saveListing(v, images, id);
@@ -119,8 +128,8 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
           </div>
           {text("model", "Modell *", { required: true, maxLength: 80, placeholder: "z. B. Golf" })}
           {text("variant", "Variante / Ausführung", { maxLength: 120, placeholder: "z. B. 2.0 TDI Highline" })}
-          {text("first_registration", "Erstzulassung", { type: "month" })}
-          {text("mileage", "Kilometerstand", { inputMode: "numeric", placeholder: "km" })}
+          {text("first_registration", "Erstzulassung *", { type: "month", required: true })}
+          {text("mileage", "Kilometerstand *", { inputMode: "numeric", placeholder: "km", required: true })}
           {select("fuel", "Kraftstoff", FUELS)}
           {select("transmission", "Getriebe", TRANSMISSIONS)}
           {text("power_kw", "Leistung (kW)", { inputMode: "numeric" })}
@@ -150,8 +159,11 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
       </section>
 
       <section className="card p-5">
-        <h2 className="h2 mb-1">Fotos</h2>
-        <p className="mb-4 text-xs text-muted">Bis zu {MAX_IMAGES} Fotos. Das erste Foto ist das Titelbild.</p>
+        <h2 className="h2 mb-1">Fotos *</h2>
+        <p className="mb-4 text-xs text-muted">
+          Mindestens {MIN_PHOTOS}, höchstens {MAX_IMAGES} Fotos. Das erste Foto ist das Titelbild.{" "}
+          <span className={images.length >= MIN_PHOTOS ? "font-semibold text-emerald-700" : "font-semibold text-urgent"}>{images.length} von {MIN_PHOTOS} Pflichtfotos</span>
+        </p>
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-6">
           {images.map((p, i) => (
             <div key={p} className="relative overflow-hidden rounded-lg border border-line">
@@ -176,15 +188,32 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
       <section className="card p-5">
         <h2 className="h2 mb-4">Zustand</h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {select("accident_free", "Unfallfrei", [["ja", "Ja"], ["nein", "Nein"]], "Keine Angabe")}
+          {select("accident_free", "Unfallfrei *", [["ja", "Ja"], ["nein", "Nein"]], "Bitte wählen")}
           {select("service_history", "Scheckheftgepflegt", [["ja", "Ja"], ["nein", "Nein"]], "Keine Angabe")}
           <label className="flex items-center gap-2 self-end py-2.5 text-sm">
             <input type="checkbox" checked={v.roadworthy} onChange={(e) => set("roadworthy", e.target.checked)} /> Fahrbereit
           </label>
         </div>
+        <fieldset className="mt-5">
+          <legend className="label">Bekannte Mängel * (ankreuzen, was zutrifft)</legend>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            {DEFECTS.map((d) => (
+              <label key={d} className="flex items-center gap-2">
+                <input type="checkbox" checked={v.defects.includes(d)}
+                  onChange={(e) => setV((o) => ({ ...o, no_known_defects: false, defects: e.target.checked ? [...o.defects, d] : o.defects.filter((x) => x !== d) }))} />
+                {d}
+              </label>
+            ))}
+          </div>
+          <label className="mt-3 flex items-center gap-2 rounded-md border border-line bg-brand-50 px-3 py-2.5 text-sm font-semibold">
+            <input type="checkbox" checked={v.no_known_defects} disabled={v.defects.length > 0}
+              onChange={(e) => set("no_known_defects", e.target.checked)} />
+            Keine bekannten Mängel
+          </label>
+        </fieldset>
         <div className="mt-4">
-          <label className="label" htmlFor="l-damage">Bekannte Mängel und Schäden</label>
-          <textarea className="input min-h-24" id="l-damage" value={v.damage_notes} onChange={(e) => set("damage_notes", e.target.value)} placeholder="z. B. Kratzer Stoßfänger hinten, Kupplung rupft, Service fällig" maxLength={4000} />
+          <label className="label" htmlFor="l-damage">Erläuterung zu den Mängeln (optional)</label>
+          <textarea className="input min-h-20" id="l-damage" value={v.damage_notes} onChange={(e) => set("damage_notes", e.target.value)} placeholder="z. B. Kratzer Stoßfänger hinten, Kupplung rupft, Service fällig" maxLength={4000} />
         </div>
       </section>
 
@@ -223,6 +252,21 @@ export function ListingForm({ userId, id, initial, initialImages = [], defaultZi
           </div>
         </div>
       </details>
+
+      <section className="card overflow-hidden" aria-live="polite">
+        <div className="flex flex-wrap items-center justify-between gap-3 bg-brand-800 px-5 py-3 text-white">
+          <p className="h2">Vollständigkeit</p>
+          <p className="price text-3xl text-accent" data-testid="quality-score">{q.score} %</p>
+        </div>
+        <div className="h-2 bg-brand-100" aria-hidden><div className="h-full bg-accent" style={{ width: `${q.score}%` }} /></div>
+        <p className="px-5 py-3 text-sm text-muted">
+          {required.length > 0
+            ? <><strong className="text-urgent">Pflicht fehlt:</strong> {required.join(", ")}.</>
+            : q.complete
+              ? "Vollständiges Inserat: Es wird in der Suche bevorzugt angezeigt."
+              : <>Für die Kennzeichnung „Vollständig“ (ab 80 %) fehlt noch: {q.missing.slice(0, 4).join(", ")}.</>}
+        </p>
+      </section>
 
       <section className="card p-5">
         <label className="flex gap-2 text-sm">

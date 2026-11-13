@@ -102,6 +102,10 @@ export function SearchFilters({ filters: f, sort, view = "" }: { filters: Filter
           <input type="checkbox" name="dringend" value="1" defaultChecked={!!f.dringend} />
           Nur „Muss schnell weg“
         </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" name="preis_gesenkt" value="1" defaultChecked={!!f.preis_gesenkt} />
+          Nur mit gesenktem Preis
+        </label>
         <div className="flex gap-2">
           <button className="btn btn-dark flex-1">Suchen</button>
           <Link href="/suche" className="btn btn-secondary">Zurücksetzen</Link>

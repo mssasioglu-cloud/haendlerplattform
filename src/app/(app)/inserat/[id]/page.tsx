@@ -6,8 +6,8 @@ import { Gallery } from "@/components/Gallery";
 import { MessageForm, OfferForm, ReportForm } from "@/components/ContactForms";
 import { FavoriteButton } from "@/components/FavoriteButton";
 import { Stars } from "@/components/Stars";
-import { setListingStatus, toggleUrgent, deleteListing } from "@/app/actions/listings";
-import { eur, km, monthYear, ps, prices, imageUrl, whatsappLink, dateDe, absoluteUrl, standzeit } from "@/lib/format";
+import { setListingStatus, toggleUrgent, deleteListing, extendListing } from "@/app/actions/listings";
+import { eur, km, monthYear, ps, prices, imageUrl, whatsappLink, dateDe, absoluteUrl, standzeit, priceDrop, daysLeft } from "@/lib/format";
 import { VAT_LABEL, B2B_NOTICE, EXTRA_FIELDS, categoryLabel } from "@/lib/vehicle";
 import type { Listing, Dealer } from "@/lib/types";
 
@@ -37,6 +37,10 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
     supabase.from("offers").select("amount, counter_amount, status").eq("listing_id", id).eq("buyer_id", s.userId)
       .in("status", ["offen", "gegenangebot", "angenommen"]).order("created_at", { ascending: false }).limit(1).maybeSingle(),
   ]);
+  const { data: responseHours } = await supabase.rpc("dealer_response_hours", { p_dealer: l.dealer_id });
+  const drop = priceDrop(l);
+  const expired = daysLeft(l.expires_at) <= 0;
+  const shareUrl = absoluteUrl(`/a/${l.id}`);
   const d = dealer as Dealer | null;
   const p = prices(l);
   const title = `${l.make} ${l.model}${l.variant ? " " + l.variant : ""}`;
@@ -103,7 +107,16 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
 
         <section className="card p-5">
           <h2 className="h2 mb-2">Mängel und Schäden</h2>
-          <p className="whitespace-pre-line text-sm">{l.damage_notes || "Vom Händler wurden keine Mängel angegeben."}</p>
+          {l.defects?.length > 0 ? (
+            <ul className="mb-2 flex flex-wrap gap-1.5">
+              {l.defects.map((d) => <li key={d} className="badge bg-urgent-bg text-urgent">{d}</li>)}
+            </ul>
+          ) : l.no_known_defects ? (
+            <p className="badge mb-2 bg-emerald-100 text-emerald-800">Laut Händler keine bekannten Mängel</p>
+          ) : null}
+          <p className="whitespace-pre-line text-sm">
+            {l.damage_notes || (l.defects?.length || l.no_known_defects ? "" : "Vom Händler wurden keine Mängel angegeben.")}
+          </p>
         </section>
 
         {l.features.length > 0 && (
@@ -130,6 +143,9 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
           <div className="bg-brand-800 px-5 py-4 text-white">
             <p className="eyebrow text-brand-200">Händlerpreis</p>
             <p className="price mt-1 text-5xl text-accent">{eur(p.gross)}</p>
+            {drop != null && (
+              <p className="num mt-1.5 text-sm font-semibold text-emerald-300">▼ −{eur(drop)} seit {dateDe(l.price_changed_at)} (vorher {eur(l.previous_price_gross)})</p>
+            )}
             {p.net != null
               ? <p className="mt-1.5 text-sm text-brand-200">{eur(p.net)} netto · {VAT_LABEL.ausweisbar}</p>
               : <p className="mt-1.5 text-sm text-brand-200">{VAT_LABEL.differenz}, MwSt. nicht ausweisbar</p>}
@@ -147,6 +163,9 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
             <Link href={`/haendler/${d.id}`} className="link">{d.company_name}</Link>
             <p className="text-sm text-muted">{d.contact_name} · {d.zip} {d.city}</p>
             <div className="mt-1"><Stars value={rating} count={reviews?.length ?? 0} /></div>
+            {typeof responseHours === "number" && (
+              <p className="mt-1 text-xs text-muted">Antwortet meist innerhalb von {responseHours < 1 ? "einer Stunde" : `${Math.ceil(responseHours)} Stunden`}</p>
+            )}
             {!mine && (
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {d.phone && <a href={`tel:${d.phone.replace(/[^\d+]/g, "")}`} className="btn btn-secondary">Anrufen</a>}
@@ -163,6 +182,13 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
         {mine ? (
           <div className="card space-y-2 p-5">
             <p className="font-semibold">Ihr Inserat</p>
+            <p className={`num text-xs ${expired ? "font-semibold text-urgent" : "text-muted"}`}>
+              {expired ? "Abgelaufen: für andere nicht mehr sichtbar." : `Läuft in ${daysLeft(l.expires_at)} Tagen ab.`}
+            </p>
+            <form action={extendListing}>
+              <input type="hidden" name="id" value={l.id} />
+              <button className="btn btn-secondary w-full">30 Tage verlängern</button>
+            </form>
             <Link href={`/inserat/${l.id}/bearbeiten`} className="btn btn-primary w-full">Bearbeiten</Link>
             <form action={toggleUrgent}>
               <input type="hidden" name="id" value={l.id} />
@@ -198,6 +224,15 @@ export default async function Inserat({ params }: { params: Promise<{ id: string
             <ReportForm listingId={l.id} />
           </>
         )}
+
+        <div className="card p-5">
+          <p className="eyebrow mb-2">Weitergeben</p>
+          <a href={`https://wa.me/?text=${encodeURIComponent(`${title}, EZ ${l.first_registration ? monthYear(l.first_registration) : "–"}, ${l.mileage != null ? km(l.mileage) : ""} – ${shareUrl}`)}`}
+            target="_blank" rel="noopener noreferrer" className="btn btn-secondary w-full">Per WhatsApp teilen</a>
+          <p className="mt-2 text-xs text-muted">
+            Der Link zeigt Foto und Eckdaten. Preis und Händler sieht nur, wer als Händler angemeldet ist.
+          </p>
+        </div>
       </aside>
     </div>
   );

@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { site, priceLabel } from "@/config/site";
 import { createClient } from "@/lib/supabase/server";
+import { SavingsCalculator } from "@/components/SavingsCalculator";
 
 export const dynamic = "force-dynamic";
 
 const benefits: [string, string][] = [
   ["Unbegrenzt inserieren", "Ein Festpreis im Monat, egal ob 5 oder 500 Fahrzeuge. Keine Kosten pro Inserat."],
+  ["Ehrliche Inserate", "Mängel-Checkliste und Pflichtfotos bei jedem Fahrzeug. Sie wissen vor der Anfahrt, was Sie erwartet."],
+  ["Immer aktueller Bestand", "Inserate laufen nach 30 Tagen ab, wenn der Händler sie nicht bestätigt. Keine verkauften Karteileichen."],
   ["Nur geprüfte Händler", "Jeder Account wird anhand des Gewerbenachweises von Hand freigeschaltet. Keine Privatkunden."],
   ["Ohne Sachmängelhaftung", "Reiner Handel zwischen Unternehmern. Jedes Inserat trägt den B2B-Hinweis."],
   ["In zwei Minuten online", "Schnell-Formular fürs Handy: Eckdaten, Preis, Fotos. Ausstattung nur, wenn gewünscht."],
@@ -87,6 +90,12 @@ export default async function Home() {
           </div>
         </div>
         <div className="hatch h-2" aria-hidden />
+      </section>
+
+      <section className="mx-auto max-w-6xl px-4 pt-14">
+        <p className="eyebrow">Ersparnisrechner</p>
+        <h2 className="mb-6 mt-2 font-display text-4xl font-extrabold uppercase leading-none tracking-wide">Was bleibt bei Ihnen hängen?</h2>
+        <SavingsCalculator priceMonthly={site.priceMonthly} />
       </section>
 
       <section className="mx-auto max-w-6xl px-4 py-14">

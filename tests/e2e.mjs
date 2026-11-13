@@ -24,22 +24,28 @@ const browser = await chromium.launch();
 const licence = path.join(SHOTS, "_gewerbeschein.png");
 const photo1 = path.join(SHOTS, "_foto1.png");
 const photo2 = path.join(SHOTS, "_foto2.png");
+const photo3 = path.join(SHOTS, "_foto3.png");
 {
   const p = await browser.newPage({ viewport: { width: 1200, height: 900 } });
-  for (const [file, color, label] of [[licence, "#fff", "Gewerbeanmeldung (Test)"], [photo1, "#3b6ea5", "Testfoto 1"], [photo2, "#7a8b99", "Testfoto 2"]]) {
+  for (const [file, color, label] of [[licence, "#fff", "Gewerbeanmeldung (Test)"], [photo1, "#3b6ea5", "Testfoto 1"], [photo2, "#7a8b99", "Testfoto 2"], [photo3, "#8a7a5c", "Testfoto 3"]]) {
     await p.setContent(`<body style="margin:0;background:${color};display:flex;align-items:center;justify-content:center;height:100vh;font:60px sans-serif;color:#111">${label}</body>`);
     await p.screenshot({ path: file });
   }
   await p.close();
 }
 
-async function register(name, company, zip, { mobile = false } = {}) {
+async function register(name, company, zip, { mobile = false, invite = null } = {}) {
   const ctx = await browser.newContext(mobile
     ? { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }
     : { viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
   const page = await ctx.newPage();
   const email = `${name}-${run}@test.example`;
-  await page.goto(`${BASE}/registrieren`);
+  if (invite) {
+    await page.goto(`${BASE}/einladung/${invite}`);
+    await page.waitForURL(/registrieren/);
+  } else {
+    await page.goto(`${BASE}/registrieren`);
+  }
   await page.fill("#email", email);
   await page.fill("#password", "Geheim1234!");
   await page.check('input[name="b2b"]');
@@ -74,10 +80,11 @@ async function createListing(page, o) {
   await page.selectOption("#l-vat_type", o.vat ?? "differenz");
   if (o.net) await page.check('input[name="net"] >> nth=1');
   if (o.urgent) await page.getByLabel(/Muss schnell weg/).check();
-  if (o.photos) {
-    await page.setInputFiles('input[type="file"]', o.photos);
-    await page.waitForFunction((n) => document.querySelectorAll('img[alt^="Foto "]').length === n, o.photos.length);
-  }
+  const photos = o.photos ?? [photo1, photo2, photo3];
+  await page.setInputFiles('input[type="file"]', photos);
+  await page.waitForFunction((n) => document.querySelectorAll('img[alt^="Foto "]').length === n, photos.length);
+  await page.selectOption("#l-accident_free", "ja");
+  await page.getByLabel("Lack / Kratzer", { exact: true }).check();
   await page.fill("#l-damage", o.damage ?? "Kratzer am Stoßfänger hinten");
   if (o.features) {
     await page.click("summary:has-text('Weitere Angaben')");
@@ -151,10 +158,10 @@ try {
 
   console.log("\n4. Inserieren");
   const l1 = await createListing(a.page, { make: "Volkswagen", model: "Golf", variant: "2.0 TDI Highline", price: 11900, urgent: true,
-    photos: [photo1, photo2], features: ["Klimaautomatik", "Navigationssystem", "Anhängerkupplung"] });
+    features: ["Klimaautomatik", "Navigationssystem", "Anhängerkupplung"] });
   check("Inserat angelegt und Detailseite sichtbar", await a.page.getByRole("heading", { name: /Volkswagen Golf/ }).first().isVisible());
   check("B2B-Hinweis auf dem Inserat", await a.page.getByText("unter Ausschluss der Sachmängelhaftung").first().isVisible());
-  check("Zwei Fotos gespeichert", sql(`select count(*) from public.listing_images where listing_id='${l1}'`) === "2");
+  check("Drei Fotos gespeichert", sql(`select count(*) from public.listing_images where listing_id='${l1}'`) === "3");
   check("Standort aus PLZ ermittelt", sql(`select city from public.listings where id='${l1}'`) === "Köln");
   await shot(a.page, "05-inserat-eigene-ansicht", true);
   await createListing(a.page, { make: "BMW", model: "320d", variant: "Touring", price: 15000, vat: "ausweisbar", net: true, km: 142000, ez: "2017-03" });
@@ -200,7 +207,7 @@ try {
   await shot(b.page, "08-inserat-kaeufer-ansicht", true);
   check("Telefon- und WhatsApp-Button vorhanden",
     await b.page.getByRole("link", { name: "Anrufen" }).first().isVisible()
-    && (await b.page.getByRole("link", { name: "WhatsApp" }).getAttribute("href")).startsWith("https://wa.me/491711234567"));
+    && (await b.page.getByRole("link", { name: "WhatsApp", exact: true }).getAttribute("href")).startsWith("https://wa.me/491711234567"));
   await b.page.fill('textarea[name="body"]', "Guten Tag, ist der Golf noch da? Letzter Preis?");
   await b.page.getByRole("button", { name: "Nachricht senden" }).click();
   await b.page.waitForURL(/\/nachrichten\/[0-9a-f-]{36}$/);
@@ -248,6 +255,99 @@ try {
   await shot(b.page, "12-haendlerprofil", true);
   await admin.page.goto(`${BASE}/haendler/${a.id}`);
   check("Ohne Kontakt keine Bewertung möglich", await admin.page.getByText("Bewerten können Sie, sobald").first().isVisible());
+
+  console.log("\n9b. Qualität: Pflichtangaben und Vollständigkeit");
+  {
+    await a.page.goto(`${BASE}/inserieren`);
+    await a.page.fill("#l-make", "Test");
+    await a.page.fill("#l-model", "Pflicht");
+    await a.page.fill("#l-first_registration", "2020-01");
+    await a.page.fill("#l-mileage", "50000");
+    await a.page.fill("#l-price", "5000");
+    const before = await a.page.getByTestId("quality-score").innerText();
+    await a.page.setInputFiles('input[type="file"]', [photo1, photo2]);
+    await a.page.waitForFunction(() => document.querySelectorAll('img[alt^="Foto "]').length === 2);
+    await a.page.getByLabel(/Pflichtbestätigung/).check();
+    await a.page.click('button:has-text("Inserat veröffentlichen")');
+    check("Inserat mit zwei Fotos und ohne Mängelangabe wird abgelehnt",
+      await a.page.getByText(/Es fehlt noch: mindestens 3 Fotos/).first().isVisible() && a.page.url().endsWith("/inserieren"));
+    await a.page.getByLabel("Keine bekannten Mängel", { exact: true }).check();
+    await a.page.selectOption("#l-accident_free", "ja");
+    const after = await a.page.getByTestId("quality-score").innerText();
+    check("Vollständigkeitsanzeige steigt mit den Angaben", parseInt(after) > parseInt(before), `${before} -> ${after}`);
+    check("Kein Pflicht-Inserat gespeichert", sql("select count(*) from public.listings where make='Test'") === "0");
+    await a.page.goto(`${BASE}/inserat/${l1}`);
+    check("Mängel-Checkliste auf dem Inserat sichtbar", await a.page.getByText("Lack / Kratzer").first().isVisible());
+    check("Qualitätswert gespeichert", Number(sql(`select quality_score from public.listings where id='${l1}'`)) >= 60);
+  }
+
+  console.log("\n9c. Handel: Ablauf, Preisänderung, Schnellgebot");
+  {
+    sql(`alter table public.listings disable trigger listings_before_write`);
+    sql(`update public.listings set expires_at = now() - interval '1 day' where id='${l1}'`);
+    sql(`alter table public.listings enable trigger listings_before_write`);
+    await b.page.goto(`${BASE}/suche`);
+    check("Abgelaufenes Inserat ist für andere nicht mehr in der Suche", await b.page.getByRole("heading", { name: "1 Fahrzeug" }).first().isVisible());
+    const gone = await b.page.goto(`${BASE}/inserat/${l1}`);
+    check("Abgelaufenes Inserat für andere nicht aufrufbar", gone.status() === 404);
+    await a.page.goto(`${BASE}/meine-inserate`);
+    check("Eigentümer sieht den Hinweis Abgelaufen", await a.page.getByText("Abgelaufen").first().isVisible());
+    await shot(a.page, "20-meine-inserate-ablauf", true);
+    await a.page.locator("div.card", { hasText: "Volkswagen Golf" }).getByRole("button", { name: "30 Tage verlängern" }).click();
+    await a.page.getByText(/läuft in (29|30) Tagen ab/).first().waitFor();
+    await b.page.goto(`${BASE}/suche`);
+    check("Nach dem Verlängern wieder sichtbar", await b.page.getByRole("heading", { name: "2 Fahrzeuge" }).first().isVisible());
+
+    const bmw = sql("select id from public.listings where make='BMW'");
+    await a.page.goto(`${BASE}/inserat/${bmw}/bearbeiten`);
+    await a.page.fill("#l-price", "14000");
+    await a.page.click('button:has-text("Änderungen speichern")');
+    await a.page.waitForURL(new RegExp(`/inserat/${bmw}$`));
+    check("Preisänderung in der Datenbank vermerkt", sql(`select previous_price_gross||'>'||price_gross from public.listings where id='${bmw}'`) === "17850>16660");
+    await b.page.goto(`${BASE}/suche?preis_gesenkt=1`);
+    check("Filter „Preis gesenkt“ findet das Fahrzeug mit Hinweis",
+      await b.page.getByRole("heading", { name: "1 Fahrzeug" }).first().isVisible() && await b.page.locator("text=/▼ −1\\.190/ >> visible=true").first().isVisible());
+    await shot(b.page, "21-suche-preis-gesenkt", true);
+    const offersBefore = Number(sql("select count(*) from public.offers"));
+    await b.page.getByRole("button", { name: "Bieten" }).first().click();
+    await b.page.locator(`#qo-${bmw}`).fill("15500");
+    await b.page.getByRole("button", { name: "OK" }).click();
+    await b.page.getByText("Gebot gesendet").first().waitFor();
+    check("Schnellgebot aus der Liste erzeugt ein Gebot",
+      Number(sql("select count(*) from public.offers")) === offersBefore + 1 && sql(`select amount from public.offers where listing_id='${bmw}'`) === "15500");
+  }
+
+  console.log("\n9d. Wachstum: Einladung, Vorschauseite, Rechner");
+  {
+    const code = sql(`select invite_code from public.dealers where id='${a.id}'`);
+    const d = await register("haendler-d", "Delta Mobile GmbH", "44135", { invite: code });
+    check("Einladungslink trägt den Werber ein", sql(`select invited_by from public.dealers where id='${d.id}'`) === a.id);
+    await a.page.goto(`${BASE}/konto`);
+    check("Konto zeigt Einladungslink und Zähler",
+      (await a.page.locator("#copy-field").inputValue()).endsWith(`/einladung/${code}`) && (await a.page.getByTestId("invited-count").innerText()) === "1");
+    await shot(a.page, "22-konto-einladung", true);
+    sql(`delete from auth.users where id='${d.id}'`);
+    await d.ctx.close();
+
+    const anon = await browser.newContext({ viewport: { width: 1280, height: 900 }, deviceScaleFactor: 2 });
+    const tp = await anon.newPage();
+    const res = await tp.goto(`${BASE}/a/${l1}`);
+    const html = await tp.content();
+    check("Vorschauseite ohne Login erreichbar", res.status() === 200 && await tp.getByRole("heading", { name: /Volkswagen Golf/ }).first().isVisible());
+    check("Vorschauseite verrät weder Preis noch Händler (auch nicht im Quelltext)",
+      !html.includes("11.900") && !html.includes("11900") && !html.includes("Autohaus Alpha") && !html.includes("0221 1234567"));
+    check("Vorschauseite hat Vorschaubild für WhatsApp und ist für Suchmaschinen gesperrt",
+      (await tp.locator('meta[property="og:image"]').count()) === 1 && (await tp.locator('meta[name="robots"]').getAttribute("content")).includes("noindex"));
+    await shot(tp, "23-vorschauseite", true);
+    await tp.goto(BASE);
+    await tp.fill("#calc-current", "4000");
+    check("Ersparnisrechner rechnet", await tp.getByText("47.761 €").first().isVisible());
+    await shot(tp, "24-startseite-rechner", true);
+    const noAuth = await fetch(`${BASE}/api/cron/ablauf`);
+    const withAuth = await fetch(`${BASE}/api/cron/ablauf`, { headers: { Authorization: "Bearer testcron" } });
+    check("Erinnerungslauf nur mit Geheimnis aufrufbar", noAuth.status === 401 && withAuth.status === 200);
+    await anon.close();
+  }
 
   console.log("\n10. Suchgesuche");
   await b.page.goto(`${BASE}/gesuche/neu`);
@@ -363,6 +463,8 @@ try {
   check("Händler kann sich keinen Gründerplatz geben", pr.status >= 400);
   pr = await patch("dealer_private", `dealer_id=eq.${c.id}`, { subscription_status: "active" }, tc);
   check("Händler kann Abo-Status nicht fälschen", pr.status >= 400 && sql(`select coalesce(subscription_status,'') from public.dealer_private where dealer_id='${c.id}'`) === "canceled");
+  pr = await patch("dealers", `id=eq.${b.id}`, { invited_by: a.id }, tb);
+  check("Händler kann den Werber nicht selbst setzen", pr.status >= 400);
   pr = await patch("listings", `id=eq.${l1}`, { price: 1 }, tb);
   check("Fremdes Inserat nicht änderbar", sql(`select price from public.listings where id='${l1}'`) === "11900");
   const lic = await fetch(`${api}/storage/v1/object/authenticated/gewerbescheine/${sql(`select license_path from public.dealer_private where dealer_id='${a.id}'`)}`, { headers: { apikey: anon, Authorization: `Bearer ${tb}` } });

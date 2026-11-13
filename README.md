@@ -15,6 +15,11 @@ Name, Preis und Anzahl der Gratisplätze stehen in `src/config/site.ts`.
 - Gebote mit Gegenangebot, Suchgesuche-Board, Merkliste, Suchaufträge mit E-Mail
 - Händlerprofile mit Bewertungen
 - Stripe-Abo ab Händler 101, Kundenportal für Rechnungen und Kündigung
+- Pflichtangaben und Mängel-Checkliste, Vollständigkeitsanzeige, bevorzugte Anzeige vollständiger Inserate
+- Inserate laufen nach 30 Tagen ab (Verlängern mit einem Klick, Erinnerung per E-Mail über Vercel Cron, `CRON_SECRET`)
+- Preisänderung mit Filter „Preis gesenkt“, Schnellgebot aus der Liste, Antwortzeit am Händlerprofil
+- Einladungslinks, öffentliche Vorschauseite zum Teilen (ohne Preis und Händler), Ersparnisrechner
+- Demodaten im Admin-Bereich laden und entfernen
 
 ## Technik
 

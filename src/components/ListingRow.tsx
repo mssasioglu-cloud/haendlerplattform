@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { ListingCard as Card } from "@/lib/types";
-import { eur, km, monthYear, prices, imageUrl, standzeit, standDays } from "@/lib/format";
+import { eur, km, monthYear, prices, imageUrl, standzeit, standDays, priceDrop } from "@/lib/format";
+import { QuickOffer } from "@/components/QuickOffer";
+import { COMPLETE_FROM } from "@/lib/quality";
 import { FavoriteButton } from "@/components/FavoriteButton";
 
 // Tabellenansicht der Suche: viele Fahrzeuge auf einen Blick vergleichen.
 // Auf schmalen Bildschirmen bleiben Foto, Fahrzeug und Preis; die übrigen Angaben rücken unter den Titel.
-export function ListingTable({ rows, favorites }: { rows: Card[]; favorites: Set<string> }) {
+export function ListingTable({ rows, favorites, myId }: { rows: Card[]; favorites: Set<string>; myId?: string }) {
   return (
     <div className="card overflow-hidden">
       <table className="w-full border-collapse text-sm">
@@ -27,6 +29,7 @@ export function ListingTable({ rows, favorites }: { rows: Card[]; favorites: Set
             const img = imageUrl(l.cover_path);
             const title = `${l.make} ${l.model}`;
             const fresh = standDays(l.created_at) <= 2;
+            const drop = priceDrop(l);
             return (
               <tr key={l.id} className="group border-t border-line align-middle hover:bg-accent-50">
                 <td className="py-2 pl-3">
@@ -43,6 +46,7 @@ export function ListingTable({ rows, favorites }: { rows: Card[]; favorites: Set
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
                     {l.urgent && <span className="badge bg-urgent text-white">Muss schnell weg</span>}
                     {l.status === "reserviert" && <span className="badge bg-ink text-white">Reserviert</span>}
+                    {(l.quality_score ?? 0) >= COMPLETE_FROM && <span className="badge bg-emerald-100 text-emerald-800">Vollständig</span>}
                     <span className="num md:hidden">{monthYear(l.first_registration)} · {km(l.mileage)}</span>
                     <span className="xl:hidden">
                       {l.zip} {l.city}{l.distance != null && ` · ${Math.round(l.distance)} km entfernt`}
@@ -62,7 +66,9 @@ export function ListingTable({ rows, favorites }: { rows: Card[]; favorites: Set
                 </td>
                 <td className="whitespace-nowrap px-3 py-2 text-right">
                   <span className="price block text-2xl">{eur(p.gross)}</span>
+                  {drop != null && <span className="num block text-[11px] font-semibold text-emerald-700">▼ −{eur(drop)}</span>}
                   <span className="num block text-[11px] text-muted">{p.net != null ? `${eur(p.net)} netto` : "§ 25a"}</span>
+                  {myId && l.dealer_id !== myId && <QuickOffer listingId={l.id} />}
                 </td>
                 <td className="py-2 pr-2 text-right"><FavoriteButton listingId={l.id} initial={favorites.has(l.id)} /></td>
               </tr>

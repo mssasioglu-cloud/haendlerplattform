@@ -11,7 +11,7 @@ import type { ListingCard as Card } from "@/lib/types";
 export const metadata = { title: "Fahrzeugsuche" };
 const PAGE_SIZE = 20;
 const SORTS = [
-  ["neu", "Neueste zuerst"], ["preis_auf", "Preis aufsteigend"], ["preis_ab", "Preis absteigend"],
+  ["empfohlen", "Empfohlen"], ["neu", "Neueste zuerst"], ["preis_auf", "Preis aufsteigend"], ["preis_ab", "Preis absteigend"],
   ["km", "Kilometerstand"], ["naehe", "Entfernung"],
 ];
 
@@ -19,8 +19,8 @@ export default async function Suche({ searchParams }: { searchParams: Promise<Re
   const s = await requireAccess();
   const sp = await searchParams;
   const filters = parseFilters(sp);
-  const sortRaw = typeof sp.sort === "string" ? sp.sort : "neu";
-  const sort = SORTS.some(([v]) => v === sortRaw) && (sortRaw !== "naehe" || filters.plz) ? sortRaw : "neu";
+  const sortRaw = typeof sp.sort === "string" ? sp.sort : "empfohlen";
+  const sort = SORTS.some(([v]) => v === sortRaw) && (sortRaw !== "naehe" || filters.plz) ? sortRaw : "empfohlen";
   const view = sp.ansicht === "karten" ? "karten" : "tabelle";
   const page = Math.max(1, Number.parseInt(typeof sp.seite === "string" ? sp.seite : "1", 10) || 1);
 
@@ -77,7 +77,7 @@ export default async function Suche({ searchParams }: { searchParams: Promise<Re
           </div>
         )}
         {rows.length > 0 && (view === "tabelle" ? (
-          <ListingTable rows={rows} favorites={favSet} />
+          <ListingTable rows={rows} favorites={favSet} myId={s.userId} />
         ) : (
           <div className="space-y-3">
             {rows.map((l) => <ListingCard key={l.id} l={l} isFavorite={favSet.has(l.id)} />)}

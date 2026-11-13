@@ -20,12 +20,13 @@ export default async function Haendler({ params }: { params: Promise<{ id: strin
 
   const [{ data: listings }, { data: reviews }, { data: contact }] = await Promise.all([
     supabase.from("listings").select("*, listing_images(path, position)").eq("dealer_id", id)
-      .in("status", ["aktiv", "reserviert"]).order("created_at", { ascending: false }).limit(60),
+      .in("status", ["aktiv", "reserviert"]).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }).limit(60),
     supabase.from("reviews").select("*").eq("dealer_id", id).order("created_at", { ascending: false }),
     supabase.from("conversations").select("id")
       .or(`and(initiator_id.eq.${s.userId},recipient_id.eq.${id}),and(initiator_id.eq.${id},recipient_id.eq.${s.userId})`).limit(1),
   ]);
   const rev = reviews ?? [];
+  const { data: responseHours } = await supabase.rpc("dealer_response_hours", { p_dealer: id });
   const rating = rev.length ? rev.reduce((a, r) => a + r.rating, 0) / rev.length : null;
   const reviewerIds = Array.from(new Set(rev.map((r) => r.reviewer_id)));
   const { data: reviewers } = reviewerIds.length
@@ -42,6 +43,9 @@ export default async function Haendler({ params }: { params: Promise<{ id: strin
           <h1 className="text-xl font-bold">{d.company_name}</h1>
           <p className="text-sm text-muted">{d.contact_name}</p>
           <div className="mt-2"><Stars value={rating} count={rev.length} /></div>
+          {typeof responseHours === "number" && (
+            <p className="mt-1 text-xs text-muted">Antwortet meist innerhalb von {responseHours < 1 ? "einer Stunde" : `${Math.ceil(responseHours)} Stunden`}</p>
+          )}
           <p className="mt-3 text-sm">{d.street && <>{d.street}<br /></>}{d.zip} {d.city}</p>
           <p className="mt-2 flex flex-wrap gap-1.5">
             <span className="badge bg-emerald-100 text-emerald-800">Geprüfter Händler</span>

@@ -32,6 +32,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const dealers = (dealersRaw ?? []) as Dealer[];
   const priv = new Map(((privRaw ?? []) as DealerPrivate[]).map((p) => [p.dealer_id, p]));
   const pending = dealers.filter((d) => d.status === "ausstehend");
+  const nameOf = new Map(dealers.map((d) => [d.id, d.company_name]));
   const shown = ansicht === "haendler" ? dealers : pending;
 
   // Zeitlich begrenzte Links zu den Gewerbenachweisen (privater Bucket)
@@ -108,7 +109,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                     <p className="font-semibold">{d.company_name}</p>
                     <p className="text-sm text-muted">{d.contact_name} · {d.street}, {d.zip} {d.city}</p>
                     <p className="text-sm text-muted">{p?.email} · Tel. {d.phone} · USt-IdNr. {p?.vat_id || "keine Angabe"}</p>
-                    <p className="text-xs text-muted">Registriert {dateTimeDe(d.created_at)}{d.is_founding && ` · Gründerplatz Nr. ${d.founding_number}`}{p?.subscription_status && ` · Abo: ${p.subscription_status}`}</p>
+                    <p className="text-xs text-muted">Registriert {dateTimeDe(d.created_at)}{d.is_founding && ` · Gründerplatz Nr. ${d.founding_number}`}{d.invited_by && ` · geworben von ${nameOf.get(d.invited_by) ?? "unbekannt"}`}{p?.subscription_status && ` · Abo: ${p.subscription_status}`}</p>
                   </div>
                   <span className={`badge capitalize ${STATUS_CLS[d.status]}`}>{d.status}</span>
                 </div>
